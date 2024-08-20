@@ -8,9 +8,9 @@ const clubSchema = new mongoose.Schema({
         trim: true,
     },
     province: {
-        type: String,
-        required: true,
-        trim: true,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Province',
+        required: true
     },
     goingToday: [{
         userId: {
@@ -18,6 +18,10 @@ const clubSchema = new mongoose.Schema({
             ref: "User"
         }
     }],
+    todayCount: {
+        type: Number,
+        default: 0
+    },
 });
 
 const Club = mongoose.model("Club", clubSchema);

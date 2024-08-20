@@ -21,9 +21,15 @@ app.use(cookieParser());
 
 // Routes
 const userRouter = require("./routes/userRouter.js");
-const messageRouter = require("./routes/messageRouter.js")
-app.use("/api/user", userRouter);
-app.use("/api/message", messageRouter)
+const messageRouter = require("./routes/messageRouter.js");
+const clubRouter = require("./routes/clubRouter.js");
+const inviteRouter = require("./routes/inviteRouter.js");
+const notificationRouter = require("./routes/notificationRouter.js");
+app.use("/api/v1/user", userRouter);
+app.use("/api/v1/message", messageRouter);
+app.use("/api/v1/club", clubRouter);
+app.use("/api/v1/invite", inviteRouter);
+app.use("/api/v1/notification", notificationRouter);
 
 // Start the server
 const PORT = process.env.PORT || 3000;

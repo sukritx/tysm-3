@@ -1,6 +1,7 @@
 const { User } = require("../models/user.model");
 const { Account } = require("../models/user.model");
 const { School } = require("../models/school.model")
+const notificationController = require('../controllers/notificationController');
 const mongoose = require("mongoose");
 const zod = require("zod");
 require('dotenv').config()
@@ -9,9 +10,12 @@ const updateAccountSchema = zod.object({
     biography: zod.string().max(500).optional(),
     avatar: zod.string().url().optional(),
     instagram: zod.string().max(30).optional(),
-    school: zod.string().max(100).optional()
+    school: zod.string().optional()
 });
 const updateAccount = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         const { success, data } = updateAccountSchema.safeParse(req.body);
         
@@ -19,97 +23,87 @@ const updateAccount = async (req, res) => {
             return res.status(400).json({ error: "Invalid input data" });
         }
 
-        const userId = req.userId; // set by your authMiddleware
+        const userId = req.userId; // Assuming this is set by your authMiddleware
 
         const updatedFields = {};
 
-        if (data.biography !== undefined) {
-            updatedFields.biography = data.biography;
-        }
-
         if (data.avatar !== undefined) {
             updatedFields.avatar = data.avatar;
+        }
+
+        if (data.biography !== undefined) {
+            updatedFields.biography = data.biography;
         }
 
         if (data.instagram !== undefined) {
             updatedFields.instagram = data.instagram.toLowerCase();
         }
 
-        if (data.school !== undefined) {
-            updatedFields.school = data.school;
+        // Fetch the current account to get the old school
+        const currentAccount = await Account.findOne({ userId: userId }).session(session);
+        if (!currentAccount) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ error: "Account not found" });
         }
+
+        const oldSchoolId = currentAccount.school;
+
+        if (data.school !== undefined) {
+            if (!mongoose.Types.ObjectId.isValid(data.school)) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({ error: "Invalid school ID" });
+            }
+            updatedFields.school = new mongoose.Types.ObjectId(data.school);
+
+            // Remove user from old school if exists
+            if (oldSchoolId) {
+                await School.findByIdAndUpdate(oldSchoolId, {
+                    $pull: { members: userId },
+                    $inc: { memberCount: -1 }
+                }).session(session);
+            }
+
+            // Add user to new school
+            await School.findByIdAndUpdate(updatedFields.school, {
+                $addToSet: { members: userId },
+                $inc: { memberCount: 1 }
+            }).session(session);
+        }
+
+        updatedFields.updatedAt = new Date();
 
         const updatedAccount = await Account.findOneAndUpdate(
             { userId: userId },
             { $set: updatedFields },
-            { new: true, runValidators: true }
+            { new: true, runValidators: true, session }
         );
 
         if (!updatedAccount) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({ error: "Account not found" });
         }
+
+        await session.commitTransaction();
+        session.endSession();
 
         res.json({
             message: "Account updated successfully",
             account: {
-                biography: updatedAccount.biography,
                 avatar: updatedAccount.avatar,
+                biography: updatedAccount.biography,
                 instagram: updatedAccount.instagram,
                 school: updatedAccount.school
             }
         });
 
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         console.error("Error updating account:", error);
         res.status(500).json({ error: "Internal server error" });
-    }
-};
-
-const getAllUniversities = async (req, res) => {
-    try {
-        const universities = await School.find({ schoolType: 'university' }).select('schoolName');
-
-        if (!universities || universities.length === 0) {
-            return res.status(404).json({
-                message: "No universities found"
-            });
-        }
-
-        res.status(200).json(universities);
-    } catch (err) {
-        console.error("Error fetching universities:", err);
-        res.status(500).json({
-            message: "Internal server error"
-        });
-    }
-};
-
-const updateSchool = async (req, res) => {
-    try {
-        const schoolId = req.params.schoolId;
-        const updateData = req.body;
-
-        // Find the school by ID and update it with the new data
-        const updatedSchool = await School.findByIdAndUpdate(schoolId, updateData, {
-            new: true, // Return the updated document
-            runValidators: true // Run schema validation on the update
-        });
-
-        if (!updatedSchool) {
-            return res.status(404).json({
-                message: "School not found"
-            });
-        }
-
-        res.status(200).json({
-            message: "School updated successfully",
-            data: updatedSchool
-        });
-    } catch (err) {
-        console.error("Error updating school:", err);
-        res.status(500).json({
-            message: "Internal server error"
-        });
     }
 };
 
@@ -129,7 +123,6 @@ const getUser = async (req, res) => {
             user: users.map(filteredUser => ({
                 _id: filteredUser._id,
                 instagram: filteredUser.instagram,
-                faculty: filteredUser.faculty
             }))
         })
 
@@ -141,44 +134,86 @@ const getUser = async (req, res) => {
 
 const userSearch = async (req, res) => {
     try {
-        const username = req.params.username.toLowerCase(); // Convert to lowercase
+        const username = req.params.igUsername.toLowerCase();
+        const viewerId = req.userId; // set by your authMiddleware
 
-        // Find the user by username
         const user = await User.findOne({ username }).select('_id');
 
         if (!user) {
-            return res.status(404).json({
-                message: "User not found"
-            });
+            return res.status(404).json({ message: "User not found" });
         }
 
-        // Use the user ID to find the account
-        const account = await Account.findOne({ userId: user._id }).select('biography school faculty followersId');
+        const account = await Account.findOne({ userId: user._id })
+            .select('biography school faculty whoView')
+            .populate('school', 'schoolName schoolType');
 
         if (!account) {
-            return res.status(404).json({
-                message: "Account not found"
-            });
+            return res.status(404).json({ message: "Account not found" });
         }
 
-        // Extract biography, school, and faculty from the account object
-        const { biography, school, faculty, followersId } = account;
+        const { biography, school, faculty, whoView } = account;
 
-        // Count the number of followers
-        const numberOfFollowers = followersId.length;
+        // Determine if the viewer is the profile owner
+        const isOwnProfile = viewerId === user._id.toString();
 
-        // Send response with biography, school, faculty, and number of followers
-        return res.json({
-            data: {
-                biography,
-                school,
-                faculty,
-                numberOfFollowers
+        // If the viewer is not the profile owner, update the whoView array
+        if (viewerId && !isOwnProfile) {
+            const viewerAccount = await Account.findOne({ userId: viewerId });
+            const isVip1 = viewerAccount && viewerAccount.vip.some(vip => vip.vipLevel === 1 && vip.vipExpire > new Date());
+
+            if (!isVip1) {
+                const alreadyViewed = whoView.some(view => view.userId.toString() === viewerId);
+                if (!alreadyViewed) {
+                    account.whoView.push({ userId: viewerId, viewDate: new Date() });
+                } else {
+                    const viewIndex = whoView.findIndex(view => view.userId.toString() === viewerId);
+                    account.whoView[viewIndex].viewDate = new Date();
+                }
+                await account.save();
             }
-        });
+        }
+
+        // Count the number of unique viewers
+        const uniqueViewers = new Set(whoView.map(view => view.userId.toString())).size;
+
+        // Prepare the response data
+        const responseData = {
+            biography,
+            school: school ? { name: school.schoolName, type: school.schoolType } : null,
+            faculty,
+            uniqueViewers
+        };
+
+        return res.json({ data: responseData });
 
     } catch (err) {
-        return res.status(400).json({ error: err.message });
+        console.error("Error in userSearch:", err);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+const getWhoViewed = async (req, res) => {
+    try {
+        const userId = req.userId; // set by your authMiddleware
+
+        const account = await Account.findOne({ userId })
+            .select('whoView')
+            .populate('whoView.userId', 'username');
+
+        if (!account) {
+            return res.status(404).json({ message: "Account not found" });
+        }
+
+        const whoViewedData = account.whoView.map(view => ({
+            username: view.userId.username,
+            viewDate: view.viewDate
+        })).sort((a, b) => b.viewDate - a.viewDate); // Sort by most recent view
+
+        return res.json({ data: whoViewedData });
+
+    } catch (err) {
+        console.error("Error in getWhoViewed:", err);
+        return res.status(500).json({ error: "Internal server error" });
     }
 };
 
@@ -285,12 +320,9 @@ const unfriend = async (req, res) => {
 
 module.exports = {
     updateAccount,
-    getAllUniversities,
-    getFacultiesByUniversity,
-    updateSchool,
-    updateFaculty,
     getUser,
     userSearch,
+    getWhoViewed,
     addFriend,
     acceptFriendRequest,
     unfriend

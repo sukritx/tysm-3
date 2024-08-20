@@ -1,7 +1,7 @@
 const express = require("express");
 const { postSignup, postLogin } = require("../controllers/authController");
 const { authMiddleware } = require("../middleware/authMiddleware");
-const { updateAccount, getUser, follow, unfollow, getFollowing, userSearch, getAllUniversities, getFacultiesByUniversity, updateFaculty, updateSchool, addFriend, acceptFriendRequest } = require("../controllers/userController");
+const { updateAccount, getUser, userSearch, getWhoViewed, addFriend, acceptFriendRequest, unfriend } = require("../controllers/userController");
 
 const router = express.Router();
 
@@ -9,18 +9,13 @@ const router = express.Router();
 router.post("/signup", postSignup);
 router.post ("/login", postLogin);
 router.put("/update", authMiddleware, updateAccount);
-router.get("/school", authMiddleware, getAllUniversities)
-router.get("/faculties/:universityId", getFacultiesByUniversity);
-router.patch("/update/:schoolId", authMiddleware, updateSchool)
-router.patch("/update/:facultyId", authMiddleware, updateFaculty)
 
 router.get("/", authMiddleware, getUser); // all user for homepage
-router.get("/following", authMiddleware, getFollowing)
-router.get("/:username", authMiddleware, userSearch); // for that user profile page
-router.post("/follow/:id", authMiddleware, follow)
-router.post("/unfollow/:id", authMiddleware, unfollow)
+router.get("/:igUsername", authMiddleware, userSearch); // for that user profile page
+router.get("/who-view", authMiddleware, getWhoViewed); // get users who viewed his/her profile
 
-router.post('/add/:friendId', authMiddleware, addFriend);
-router.post('/accept/:friendId', authMiddleware, acceptFriendRequest);
+router.post("/add/:friendId", authMiddleware, addFriend);
+router.post("/accept/:friendId", authMiddleware, acceptFriendRequest);
+router.post("/unfriend/:friendId", authMiddleware, unfriend);
 
 module.exports = router;
