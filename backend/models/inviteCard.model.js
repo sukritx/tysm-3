@@ -24,11 +24,10 @@ const inviteCardSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-    status: {
-        type: String,
-        enum: ['pending', 'accepted', 'declined', 'expired'],
-        default: 'pending'
-    }
+    accepted: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }],
 });
 
 const InviteCard = mongoose.model("InviteCard", inviteCardSchema);

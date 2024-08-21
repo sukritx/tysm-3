@@ -1,18 +1,20 @@
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 
 const optionalAuthMiddleware = (req, res, next) => {
-    const userId = req.cookies.userId;
+    const token = req.cookies.jwt;
 
-    if (userId) {
+    if (token) {
         try {
-            req.userId = userId;
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            req.userId = decoded.userId;
         } catch (err) {
-            // If there's an error processing the cookie, we'll just not set req.userId
-            console.error('Error processing auth cookie:', err);
+            // If there's an error processing the token, we'll just not set req.userId
+            console.error('Error processing auth token:', err);
         }
     }
 
-    // Always call next(), whether or not we found and processed a valid cookie
+    // Always call next(), whether or not we found and processed a valid token
     next();
 };
 

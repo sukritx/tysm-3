@@ -6,11 +6,6 @@ const provinceSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
-    provinceFull: {
-        type: String,
-        required: true,
-        trim: true,
-    },
 });
 
 const Province = mongoose.model("Province", provinceSchema);

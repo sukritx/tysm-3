@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { User } = require("./user.model");
+const { Province } = require("./province.model");
 
 const clubSchema = new mongoose.Schema({
     clubName: {

@@ -1,20 +1,22 @@
-require('dotenv').config()
+require('dotenv').config();
+const jwt = require('jsonwebtoken');
 
 const authMiddleware = (req, res, next) => {
-    const userId = req.cookies.userId;
+    const token = req.cookies.jwt;
 
-    if (!userId) {
-        return res.status(401).json({ error: "Unauthorized: No cookie found" });
+    if (!token) {
+        return res.status(401).json({ error: "Unauthorized: No token found" });
     }
 
     try {
-        req.userId = userId;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.userId = decoded.userId;
         next();
     } catch (err) {
-        return res.status(401).json({ error: "Unauthorized: Invalid cookie" });
+        return res.status(401).json({ error: "Unauthorized: Invalid token" });
     }
 };
 
 module.exports = {
     authMiddleware
-}
+};

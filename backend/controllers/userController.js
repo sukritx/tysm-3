@@ -1,7 +1,7 @@
 const { User } = require("../models/user.model");
 const { Account } = require("../models/user.model");
 const { School } = require("../models/school.model")
-const notificationController = require('../controllers/notificationController');
+const { notificationController } = require('../controllers/notificationController');
 const mongoose = require("mongoose");
 const zod = require("zod");
 require('dotenv').config()
@@ -36,7 +36,8 @@ const updateAccount = async (req, res) => {
         }
 
         if (data.instagram !== undefined) {
-            updatedFields.instagram = data.instagram.toLowerCase();
+            const newInstagram = data.instagram.toLowerCase();
+            updatedFields.instagram = newInstagram;
         }
 
         // Fetch the current account to get the old school
@@ -111,30 +112,54 @@ const getUser = async (req, res) => {
     try {
         const filter = req.query.filter || "";
 
-        const users = await Account.find({
-            $or: [
-                {
-                    instagram: { "$regex": filter, "$options": "i" }
+        const users = await Account.aggregate([
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "userDetails"
                 }
-            ]
-        })
+            },
+            {
+                $unwind: "$userDetails"
+            },
+            {
+                $match: {
+                    $or: [
+                        { instagram: { $regex: filter, $options: "i" } },
+                        { "userDetails.username": { $regex: filter, $options: "i" } }
+                    ]
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    instagram: 1,
+                    username: "$userDetails.username",
+                    userId: "$userDetails._id"
+                }
+            }
+        ]);
 
         res.json({
-            user: users.map(filteredUser => ({
-                _id: filteredUser._id,
-                instagram: filteredUser.instagram,
+            users: users.map(user => ({
+                _id: user._id,
+                userId: user.userId,
+                instagram: user.instagram,
+                username: user.username
             }))
-        })
-
+        });
 
     } catch (err) {
-        return res.status(400).json({ error: err.message})
+        console.error("Error in getUser:", err);
+        return res.status(500).json({ error: "Internal server error" });
     }
 };
 
 const userSearch = async (req, res) => {
     try {
-        const username = req.params.igUsername.toLowerCase();
+        const username = req.params.username.toLowerCase();
         const viewerId = req.userId; // set by your authMiddleware
 
         const user = await User.findOne({ username }).select('_id');
@@ -249,6 +274,9 @@ const addFriend = async (req, res) => {
         await userAccount.save();
         await friendAccount.save();
 
+        // Send notification for the friend request
+        await notificationController.sendFriendRequestNotification(userId, friendId);
+
         res.status(200).json({ message: "Friend request sent successfully" });
     } catch (error) {
         console.error("Error adding friend:", error);
@@ -288,6 +316,9 @@ const acceptFriendRequest = async (req, res) => {
         await userAccount.save();
         await friendAccount.save();
 
+        // Send notification for accepted friend request
+        await notificationController.sendFriendAddedNotification(userId, friendId);
+
         res.status(200).json({ message: "Friend request accepted successfully" });
     } catch (error) {
         console.error("Error accepting friend request:", error);
@@ -298,25 +329,33 @@ const acceptFriendRequest = async (req, res) => {
 const unfriend = async (req, res) => {
     try {
         const userId = req.userId;
-        const friendId = req.params.id;
+        const friendId = req.params.friendId;
+
+        // Find both user accounts
+        const userAccount = await Account.findOne({ userId });
+        const friendAccount = await Account.findOne({ userId: friendId });
+
+        if (!userAccount || !friendAccount) {
+            return res.status(404).json({ message: "User not found" });
+        }
 
         // Remove friendId from userId's friends list
-        await Account.findOneAndUpdate(
-            { userId },
-            { $pull: { friendsList: { friendId } } }
-        );
+        userAccount.friendsList = userAccount.friendsList.filter(friend => friend.friendId.toString() !== friendId);
 
         // Remove userId from friendId's friends list
-        await Account.findOneAndUpdate(
-            { userId: friendId },
-            { $pull: { friendsList: { friendId: userId } } }
-        );
+        friendAccount.friendsList = friendAccount.friendsList.filter(friend => friend.friendId.toString() !== userId);
+
+        // Save the updated accounts
+        await userAccount.save();
+        await friendAccount.save();
 
         return res.status(200).json({ message: 'Friend removed successfully' });
     } catch (err) {
-        return res.status(400).json({ error: err.message });
+        console.error("Error unfriending:", err);
+        return res.status(500).json({ message: "Internal server error", error: err.message });
     }
-}
+};
+
 
 module.exports = {
     updateAccount,

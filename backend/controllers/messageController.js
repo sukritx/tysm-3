@@ -1,7 +1,4 @@
 const { User } = require("../models/user.model");
-const { Account } = require("../models/user.model");
-const { Comment } = require("../models/comment.model");
-const { Post } = require("../models/post.model");
 const { Message } = require("../models/message.model")
 const zod = require("zod");
 

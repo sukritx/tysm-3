@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
-const { InviteCard } = require('./models/inviteCard'); // Adjust the path as needed
-const { User, Account } = require('./models/user'); // Adjust the path as needed
-const { Club } = require('./models/club'); // Adjust the path as needed
+const { InviteCard } = require('../models/inviteCard.model'); // Adjust the path as needed
+const { User, Account } = require('../models/user.model'); // Adjust the path as needed
+const { Club } = require('../models/club.model'); // Adjust the path as needed
 
 // Function to generate a unique invite link
 const generateInviteLink = () => {
@@ -38,7 +38,8 @@ const postSendInvite = async (req, res) => {
             inviteLink,
             club: clubId,
             inviteDate: new Date(),
-            expiresAt
+            expiresAt,
+            accepted: [] // Initialize with an empty array
         });
 
         await newInvite.save();
@@ -65,7 +66,8 @@ const getInviteDetails = async (req, res) => {
 
         const invite = await InviteCard.findOne({ inviteLink })
             .populate('userId', 'username')
-            .populate('club', 'clubName');
+            .populate('club', 'clubName')
+            .populate('accepted', 'username');
 
         if (!invite) {
             return res.status(404).json({ error: "Invite not found" });
@@ -73,20 +75,23 @@ const getInviteDetails = async (req, res) => {
 
         // Check if the invite has expired
         if (invite.expiresAt < new Date()) {
-            invite.status = 'expired';
-            await invite.save();
             return res.status(410).json({ error: "Invite has expired" });
         }
 
-        const senderAccount = await Account.findOne({ userId: invite.userId._id });
-        const senderIg = senderAccount ? senderAccount.instagram : invite.userId.username;
+        const acceptedUsers = await Promise.all(invite.accepted.map(async (user) => {
+            const account = await Account.findOne({ userId: user._id }).populate('school', 'schoolName');
+            return {
+                username: user.username,
+                schoolName: account?.school?.schoolName || null
+            };
+        }));
 
         res.json({
-            from: senderIg,
+            from: invite.userId.username,
             clubName: invite.club.clubName,
             date: invite.inviteDate,
             expiresAt: invite.expiresAt,
-            status: invite.status
+            acceptedUsers: acceptedUsers
         });
 
     } catch (error) {
@@ -98,12 +103,8 @@ const getInviteDetails = async (req, res) => {
 // Function to respond to an invite
 const respondToInvite = async (req, res) => {
     try {
-        const { inviteLink, response } = req.body;
+        const { inviteLink } = req.body;
         const userId = req.userId; // Will be undefined for non-logged-in users
-
-        if (!['go', 'not go'].includes(response)) {
-            return res.status(400).json({ error: "Invalid response" });
-        }
 
         const invite = await InviteCard.findOne({ inviteLink });
         if (!invite) {
@@ -112,35 +113,30 @@ const respondToInvite = async (req, res) => {
 
         // Check if the invite has expired
         if (invite.expiresAt < new Date()) {
-            invite.status = 'expired';
-            await invite.save();
             return res.status(410).json({ error: "Invite has expired" });
         }
 
-        if (response === 'go') {
-            if (!userId) {
-                // User is not logged in, redirect to registration
-                return res.json({ redirect: '/register', inviteLink });
-            }
-
-            // Update invite status
-            invite.status = 'accepted';
-            await invite.save();
-
-            // Add user to the club's goingToday list
-            await Club.findByIdAndUpdate(invite.club, {
-                $addToSet: { goingToday: { userId } },
-                $inc: { todayCount: 1 }
-            });
-
-            res.json({ message: "You're going to the club!" });
-        } else {
-            // Update invite status
-            invite.status = 'declined';
-            await invite.save();
-
-            res.json({ message: "Maybe next time!" });
+        if (!userId) {
+            // User is not logged in, redirect to registration
+            return res.json({ redirect: '/register', inviteLink });
         }
+
+        // Check if user has already accepted this invite
+        if (invite.accepted.includes(userId)) {
+            return res.status(400).json({ error: "You've already accepted this invite" });
+        }
+
+        // Add user to the accepted list
+        invite.accepted.push(userId);
+        await invite.save();
+
+        // Add user to the club's goingToday list
+        await Club.findByIdAndUpdate(invite.club, {
+            $addToSet: { goingToday: { userId } },
+            $inc: { todayCount: 1 }
+        });
+
+        res.json({ message: "You're going to the club!" });
 
     } catch (error) {
         console.error("Error in respondToInvite:", error);

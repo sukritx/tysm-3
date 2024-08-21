@@ -75,7 +75,7 @@ const accountSchema = new mongoose.Schema({
     instagram: {
         type: String,
         required: false,
-        unique: true,
+        unique: false,
         trim: true,
         maxlength: 30
     },

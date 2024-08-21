@@ -12,6 +12,9 @@ const schoolSchema = new mongoose.Schema({
         type: String,
         enum: ["school", "university"]
     },
+    location: {
+        type: String,
+    },
     members: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: 'User',

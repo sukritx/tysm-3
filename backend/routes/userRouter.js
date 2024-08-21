@@ -11,8 +11,8 @@ router.post ("/login", postLogin);
 router.put("/update", authMiddleware, updateAccount);
 
 router.get("/", authMiddleware, getUser); // all user for homepage
-router.get("/:igUsername", authMiddleware, userSearch); // for that user profile page
 router.get("/who-view", authMiddleware, getWhoViewed); // get users who viewed his/her profile
+router.get("/:username", authMiddleware, userSearch); // for that user profile page
 
 router.post("/add/:friendId", authMiddleware, addFriend);
 router.post("/accept/:friendId", authMiddleware, acceptFriendRequest);

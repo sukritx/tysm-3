@@ -1,8 +1,8 @@
 const { User, Account } = require("../models/user.model");
 const bcrypt = require("bcrypt");
-const mongoose = require("mongoose");
+const jwt = require('jsonwebtoken');
 const zod = require("zod");
-require('dotenv').config()
+require('dotenv').config();
 
 const signupBody = zod.object({
     username: zod.string().min(3).max(30),
@@ -15,18 +15,6 @@ const signupBody = zod.object({
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"]
-}).refine(data => data.password.length >= 6, {
-    message: "Password must be at least 6 characters long",
-    path: ["password"]
-}).refine(data => data.username.length >= 3 && data.username.length <= 30, {
-    message: "Username must be between 3 and 30 characters long",
-    path: ["username"]
-}).refine(data => data.phonenumber.length <= 10, {
-    message: "Phone number must be at most 10 characters long",
-    path: ["phonenumber"]
-}).refine(data => data.instagram.length <= 30, {
-    message: "Instagram must be at most 30 characters long",
-    path: ["instagram"]
 });
 
 const loginBody = zod.object({
@@ -35,96 +23,90 @@ const loginBody = zod.object({
 });
 
 const postSignup = async (req, res) => {
-    const { success } = signupBody.safeParse(req.body);
-    if (!success) {
-        return res.status(400).json({ error: "Incorrect inputs" });
-    }
-
-    const { username, password, confirmPassword, phonenumber, firstName, lastName, instagram } = req.body;
-
-    const existingUser = await User.findOne({
-        $or: [{ username: req.body.username }, { phonenumber: req.body.phonenumber }]
-    });
-
-    if (password !== confirmPassword) {
-        return res.status(400).json({ error: "Passwords do not match" });
-    }
-
-    if (existingUser) {
-        if (existingUser.username === username) {
-            return res.status(411).json({
-                message: "Username already taken"
-            });
-        } else if (existingUser.phonenumber === phonenumber) {
-            return res.status(412).json({
-                message: "Phone number already in use"
-            });
+    try {
+        const { success, data, error } = signupBody.safeParse(req.body);
+        if (!success) {
+            return res.status(400).json({ error: error.errors });
         }
-    }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+        const { username, password, phonenumber, firstName, lastName, instagram } = data;
 
-    const user = await User.create({
-        username,
-        password: hashedPassword,
-        phonenumber,
-        firstName,
-        lastName
-    });
+        const existingUser = await User.findOne({
+            $or: [{ username }, { phonenumber }]
+        });
 
-    const userId = user._id;
-    const account = await Account.create({
-        userId: user._id,
-        instagram: instagram.toLowerCase()
-    });
+        if (existingUser) {
+            if (existingUser.username === username) {
+                return res.status(409).json({ message: "Username already taken" });
+            } else if (existingUser.phonenumber === phonenumber) {
+                return res.status(409).json({ message: "Phone number already in use" });
+            }
+        }
 
-    // Set cookie instead of returning a token
-    res.cookie('userId', userId.toString(), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        signed: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    }, process.env.JWT_SECRET);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    res.json({
-        message: "User created successfully"
-    });
-}
+        const user = await User.create({
+            username,
+            password: hashedPassword,
+            phonenumber,
+            firstName,
+            lastName
+        });
 
-const postLogin = async (req, res) => {
-    const { success } = loginBody.safeParse(req.body);
-    if(!success) {
-        return res.status(411).json({ error: "Incorrect inputs" });
-    }
+        await Account.create({
+            userId: user._id,
+            instagram: instagram.toLowerCase()
+        });
 
-    const { username, password } = req.body;
-
-    const user = await User.findOne({ username });
-
-    if (!user) {
-        return res.status(401).json({ error: "Invalid username or password" });
-    }
-
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (passwordMatch) {
-        // Set cookie instead of returning a token
-        res.cookie('userId', userId.toString(), {
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        console.log('Token created on signup:', token);
+        res.cookie('jwt', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            signed: true,
+            sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        }, process.env.JWT_SECRET);
+        });
 
-        return res.json({ message: "Logged in successfully" });
-    } else {
-        return res.status(401).json({ error: "Invalid username or password" });
+        res.status(201).json({ message: "User created successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error" });
     }
-}
+};
+
+const postLogin = async (req, res) => {
+    try {
+        const { success, data, error } = loginBody.safeParse(req.body);
+        if (!success) {
+            return res.status(400).json({ error: error.errors });
+        }
+
+        const { username, password } = data;
+
+        const user = await User.findOne({ username });
+
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).json({ error: "Invalid username or password" });
+        }
+
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        console.log('Token created on signup:', token);
+        res.cookie('jwt', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        res.json({ message: "Logged in successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
 
 const logout = (req, res) => {
-    res.clearCookie('userId');
+    res.clearCookie('jwt');
     res.json({ message: "Logged out successfully" });
 };
 

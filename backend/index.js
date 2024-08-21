@@ -17,7 +17,7 @@ app.use(cors());
 app.use(express.json());
 
 const cookieParser = require('cookie-parser');
-app.use(cookieParser());
+app.use(cookieParser(process.env.COOKIE_SECRET));
 
 // Routes
 const userRouter = require("./routes/userRouter.js");

@@ -1,5 +1,4 @@
 const { Notification } = require('../models/notification.model');
-const { User, Account } = require('../models/User');
 
 const notificationController = {
   // Send a notification when a friend request is sent
@@ -73,4 +72,6 @@ const notificationController = {
   }
 };
 
-module.exports = notificationController;
+module.exports = {
+  notificationController
+};
