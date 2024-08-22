@@ -1,26 +1,24 @@
-import {
-  BrowserRouter,
-  Route,
-  Routes
-} from "react-router-dom"
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 
-function App() {
+const App = () => {
   return (
-    <>
-       <BrowserRouter>
+    <Router>
+      <div className="min-h-screen bg-gray-900 text-white">
+        <Navbar />
         <Routes>
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/update" element={<Update />} />
-          <Route path="/" element={<Homepage />} />
-          <Route path="/message/:id" element={<SendMessage />} />
-          <Route path="/all-messages" element={<MessageAllUser />} />
-          <Route path="/all-messages/:id" element={<MessageSameUser />} />
+          <Route path="/signup" element={<Signup />} />
+          {/* Add more routes here as needed */}
         </Routes>
-      </BrowserRouter>
-    </>
-  )
-}
+      </div>
+    </Router>
+  );
+};
 
-export default App
+export default App;
