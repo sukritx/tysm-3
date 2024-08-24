@@ -13,7 +13,10 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
 const dbConnection = mongoose.connection;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:5173', // Replace with your frontend URL
+    credentials: true
+  }));
 app.use(express.json());
 
 const cookieParser = require('cookie-parser');

@@ -90,7 +90,7 @@ const postLogin = async (req, res) => {
         }
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        console.log('Token created on signup:', token);
+        console.log('Token created on login:', token);
         res.cookie('jwt', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -98,7 +98,7 @@ const postLogin = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
-        res.json({ message: "Logged in successfully" });
+        res.json({ message: "Logged in successfully", token }); // Return the token in the response body
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });

@@ -2,7 +2,8 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 const authMiddleware = (req, res, next) => {
-    const token = req.cookies.jwt;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
         return res.status(401).json({ error: "Unauthorized: No token found" });
