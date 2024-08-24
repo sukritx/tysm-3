@@ -40,6 +40,14 @@ const updateAccount = async (req, res) => {
             updatedFields.instagram = newInstagram;
         }
 
+        if (data.birthday !== undefined) {
+            updatedFields.birthday = new Date(data.birthday);
+        }
+
+        if (data.interest !== undefined) {
+            updatedFields.interest = data.interest;
+        }
+
         // Fetch the current account to get the old school
         const currentAccount = await Account.findOne({ userId: userId }).session(session);
         if (!currentAccount) {
@@ -96,7 +104,9 @@ const updateAccount = async (req, res) => {
                 avatar: updatedAccount.avatar,
                 biography: updatedAccount.biography,
                 instagram: updatedAccount.instagram,
-                school: updatedAccount.school
+                school: updatedAccount.school,
+                birthday: updatedAccount.birthday,
+                interest: updatedAccount.interest
             }
         });
 
@@ -169,14 +179,14 @@ const userSearch = async (req, res) => {
         }
 
         const account = await Account.findOne({ userId: user._id })
-            .select('biography school faculty whoView')
+            .select('biography school faculty whoView birthday interest')
             .populate('school', 'schoolName schoolType');
 
         if (!account) {
             return res.status(404).json({ message: "Account not found" });
         }
 
-        const { biography, school, faculty, whoView } = account;
+        const { biography, school, faculty, whoView, birthday, interest } = account;
 
         // Determine if the viewer is the profile owner
         const isOwnProfile = viewerId === user._id.toString();
@@ -206,7 +216,9 @@ const userSearch = async (req, res) => {
             biography,
             school: school ? { name: school.schoolName, type: school.schoolType } : null,
             faculty,
-            uniqueViewers
+            uniqueViewers,
+            birthday,
+            interest
         };
 
         return res.json({ data: responseData });
