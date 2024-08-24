@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -8,19 +8,28 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+    
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/login`, {
-        username,
-        password
-      });
-      localStorage.setItem('token', response.data.token);
-      navigate('/');
-    } catch (error) {
-      setError('Invalid username or password');
+      const success = await login(username, password);
+      if (success) {
+        console.log('Login successful, navigating to home'); // Debug log
+        navigate('/');
+      } else {
+        setError('Login failed. Please check your credentials.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An error occurred during login. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,6 +45,7 @@ const Login = () => {
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Username"
             className="w-full"
+            disabled={loading}
           />
         </div>
         <div className="mb-4">
@@ -45,9 +55,12 @@ const Login = () => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             className="w-full"
+            disabled={loading}
           />
         </div>
-        <Button type="submit" className="w-full">Login</Button>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
+        </Button>
       </form>
     </div>
   );

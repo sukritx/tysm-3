@@ -1,6 +1,7 @@
+// Signup.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -10,6 +11,7 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -18,13 +20,10 @@ const Signup = () => {
       return;
     }
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/signup`, {
-        username,
-        password
-      });
-      navigate('/login');
+      await signup(username, password);
+      navigate('/');
     } catch (error) {
-      setError('Error creating account');
+      setError(error.response?.data?.error || 'Error creating account');
     }
   };
 
