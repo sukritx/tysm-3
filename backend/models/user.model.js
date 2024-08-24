@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
         trim: true,
         lowercase: true,
         minLength: 3,
-        maxLength: 30
+        maxLength: 20
     },
     password: {
         type: String,
@@ -70,7 +70,17 @@ const accountSchema = new mongoose.Schema({
         type: String,
         required: false,
         trim: true,
-        maxlength: 50
+        maxlength: 255
+    },
+    birthday: {
+        type: Date,
+        required: false
+    },
+    interest: {
+        type: String,
+        required: false,
+        trim: true,
+        maxlength: 20
     },
     instagram: {
         type: String,
