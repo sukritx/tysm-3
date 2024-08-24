@@ -6,7 +6,7 @@ const { getClubs, getPeopleGoingToday, addClub } = require("../controllers/clubC
 const router = express.Router();
 
 // get clubs and goingToday for homepage
-router.get("/", authMiddleware, getClubs);
+router.get("/", getClubs);
 // get all people & friends going today for a club
 router.get("/going/:clubId", authMiddleware, getPeopleGoingToday);
 
