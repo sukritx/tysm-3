@@ -6,6 +6,45 @@ const mongoose = require("mongoose");
 const zod = require("zod");
 require('dotenv').config()
 
+const getUserMe = async (req, res) => {
+    try {
+      // The user ID should be attached to the request by the auth middleware
+      const userId = req.userId;
+  
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+  
+      // Fetch the user from the database
+      const user = await User.findById(userId).select('-password');
+  
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      // Fetch the associated account information
+      const account = await Account.findOne({ userId: user._id })
+        .select('biography school faculty whoView birthday interest')
+        .populate('school', 'schoolName schoolType');
+  
+      // Combine user and account information
+      const userInfo = {
+        ...user.toObject(),
+        ...(account ? account.toObject() : {}),
+        uniqueViewers: account ? account.whoView.length : 0
+      };
+  
+      res.status(200).json({
+        message: "User data retrieved successfully",
+        user: userInfo
+      });
+  
+    } catch (error) {
+      console.error('Error in getUserMe:', error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
+
 const updateAccountSchema = zod.object({
     biography: zod.string().max(500).optional(),
     avatar: zod.string().url().optional(),
@@ -167,7 +206,7 @@ const getUser = async (req, res) => {
     }
 };
 
-const userSearch = async (req, res) => {
+const profileView = async (req, res) => {
     try {
         const username = req.params.username.toLowerCase();
         const viewerId = req.userId; // set by your authMiddleware
@@ -188,11 +227,8 @@ const userSearch = async (req, res) => {
 
         const { biography, school, faculty, whoView, birthday, interest } = account;
 
-        // Determine if the viewer is the profile owner
-        const isOwnProfile = viewerId === user._id.toString();
-
         // If the viewer is not the profile owner, update the whoView array
-        if (viewerId && !isOwnProfile) {
+        if (viewerId !== user._id.toString()) {
             const viewerAccount = await Account.findOne({ userId: viewerId });
             const isVip1 = viewerAccount && viewerAccount.vip.some(vip => vip.vipLevel === 1 && vip.vipExpire > new Date());
 
@@ -213,6 +249,7 @@ const userSearch = async (req, res) => {
 
         // Prepare the response data
         const responseData = {
+            username,
             biography,
             school: school ? { name: school.schoolName, type: school.schoolType } : null,
             faculty,
@@ -224,7 +261,7 @@ const userSearch = async (req, res) => {
         return res.json({ data: responseData });
 
     } catch (err) {
-        console.error("Error in userSearch:", err);
+        console.error("Error in otherProfileView:", err);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -370,9 +407,10 @@ const unfriend = async (req, res) => {
 
 
 module.exports = {
+    getUserMe,
     updateAccount,
     getUser,
-    userSearch,
+    profileView,
     getWhoViewed,
     addFriend,
     acceptFriendRequest,

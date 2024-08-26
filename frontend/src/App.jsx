@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Club from './pages/Club';
+import Profile from './pages/ProfilePage';
 
 const App = () => {
   return (
@@ -21,6 +22,7 @@ const App = () => {
             <Route path="/signup" element={<Signup />} />
             <Route element={<PrivateRoute />}>
               <Route path="/club/:id" element={<Club />} />
+              <Route path="/profile/:username" element={<Profile />} />
             </Route>
           </Routes>
         </div>
