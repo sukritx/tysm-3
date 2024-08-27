@@ -1,22 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectLabel, SelectItem } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Lock } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Lock, ChevronDown, ChevronUp, Check } from 'lucide-react';
 
 const Home = () => {
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedProvince, setSelectedProvince] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [clubs, setClubs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { user } = useAuth();
+  const dropdownRef = useRef(null);
 
   // List of all 77 provinces in Thailand
   const provinces = [
     "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา",
-    // ... (rest of the provinces)
+    "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก",
+    "นครปฐม", "นครพนม", "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน",
+    "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา",
+    "พะเยา", "พังงา", "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต",
+    "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี",
+    "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ",
+    "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี",
+    "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์", "อุทัยธานี", "อุบลราชธานี"
   ];
 
   useEffect(() => {
@@ -24,6 +35,19 @@ const Home = () => {
       fetchClubs(selectedProvince);
     }
   }, [selectedProvince]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const fetchClubs = async (province) => {
     setLoading(true);
@@ -41,27 +65,54 @@ const Home = () => {
     }
   };
 
+  const filteredProvinces = provinces.filter(province =>
+    province.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="bg-gray-900 text-white min-h-screen">
       <div className="container mx-auto px-4 py-8 md:px-6 md:py-12">
         <h1 className="text-4xl text-center font-bold mb-6 text-[#00BAFA]">🪩 วันนี้ไปร้านไหนกัน?</h1>
         
-        <div className="mb-8">
-          <Select value={selectedProvince} onValueChange={setSelectedProvince}>
-            <SelectTrigger className="w-full max-w-md mx-auto bg-gray-800 border-gray-700 text-white">
-              <SelectValue placeholder="เลือกจังหวัด" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white">
-              <SelectGroup>
-                <SelectLabel className="text-gray-400">จังหวัดในประเทศไทย</SelectLabel>
-                {provinces.map((province) => (
-                  <SelectItem key={province} value={province} className="hover:bg-gray-700">
-                    {province}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+        <div className="max-w-md mx-auto mb-8" ref={dropdownRef}>
+          <div className="relative">
+            <Button
+              onClick={() => setIsOpen(!isOpen)}
+              className="w-full justify-between bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+            >
+              {selectedProvince || "เลือกจังหวัด"}
+              {isOpen ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
+            </Button>
+            {isOpen && (
+              <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-md shadow-lg">
+                <Input
+                  type="text"
+                  placeholder="ค้นหาจังหวัด..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="m-2 w-[calc(100%-1rem)] bg-gray-700 text-white"
+                />
+                <ul className="max-h-60 overflow-auto">
+                  {filteredProvinces.map((province) => (
+                    <li
+                      key={province}
+                      className="px-4 py-2 hover:bg-gray-700 cursor-pointer flex items-center"
+                      onClick={() => {
+                        setSelectedProvince(province);
+                        setIsOpen(false);
+                        setSearchTerm("");
+                      }}
+                    >
+                      {province}
+                      {selectedProvince === province && (
+                        <Check className="ml-auto h-4 w-4 text-[#00BAFA]" />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
 
         {loading && <p className="text-white text-center">กำลังโหลด...</p>}
