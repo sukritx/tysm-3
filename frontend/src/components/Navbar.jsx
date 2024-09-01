@@ -11,12 +11,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import tysmLogo from "../assets/tysm-logo.png";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, getToken } = useAuth();
+  const [avatar, setAvatar] = useState(null);
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (user) {
+        try {
+          const token = getToken();
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setAvatar(response.data.user.avatar);
+          setUsername(response.data.user.username);
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [user, getToken]);
 
   const handleLogout = () => {
     logout();
@@ -48,16 +71,20 @@ const Navbar = () => {
           <DropdownMenu>
             <DropdownMenuTrigger>
               <Avatar>
-                <AvatarFallback className="bg-gray-700 text-gray-100">
-                  {user.username?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
+                {avatar ? (
+                  <img src={avatar} alt={username} className="h-full w-full object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-gray-700 text-gray-100">
+                    {username.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                )}
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-gray-800 text-gray-100">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-gray-700" />
               <DropdownMenuItem className="hover:bg-gray-700">
-                <Link to="/profile">Profile</Link>
+                <Link to={`/${username}`}>Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem className="hover:bg-gray-700">
                 <Link to="/settings">Settings</Link>
