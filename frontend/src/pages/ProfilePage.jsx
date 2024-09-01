@@ -27,8 +27,10 @@ const ProfilePage = () => {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/${username}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        console.log("Profile data received:", response.data);
         setProfileData(response.data.data);
-        setFriendStatus(response.data.friendStatus);
+        setFriendStatus(response.data.data.friendStatus);
+        console.log("Friend status set to:", response.data.data.friendStatus);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching profile data:', err);
@@ -55,6 +57,9 @@ const ProfilePage = () => {
       if (!token) {
         throw new Error('No authentication token found');
       }
+      if (!profileData || !profileData._id) {
+        throw new Error('Profile data is not available');
+      }
       const endpoint = action === 'add' ? 'add' : action === 'accept' ? 'accept' : 'unfriend';
       await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/${endpoint}/${profileData._id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
@@ -64,7 +69,7 @@ const ProfilePage = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProfileData(response.data.data);
-      setFriendStatus(response.data.friendStatus);
+      setFriendStatus(response.data.data.friendStatus);
     } catch (err) {
       console.error('Error performing friend action:', err);
       setError('Failed to perform action. Please try again.');
@@ -166,7 +171,12 @@ const ProfilePage = () => {
                     Add Friend
                   </Button>
                 )}
-                {friendStatus === 'pending' && (
+                {friendStatus === 'pending_sent' && (
+                  <Button disabled>
+                    Friend Request Sent
+                  </Button>
+                )}
+                {friendStatus === 'pending_received' && (
                   <Button onClick={() => handleFriendAction('accept')}>
                     Accept Friend Request
                   </Button>
@@ -175,6 +185,9 @@ const ProfilePage = () => {
                   <Button variant="outline" onClick={() => handleFriendAction('unfriend')}>
                     Unfriend
                   </Button>
+                )}
+                {friendStatus === undefined && (
+                  <p>Friend status is undefined</p>
                 )}
               </>
             )}

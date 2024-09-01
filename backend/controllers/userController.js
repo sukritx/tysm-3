@@ -251,15 +251,18 @@ const profileView = async (req, res) => {
         let friendStatus = 'not_friends';
         const viewerAccount = await Account.findOne({ userId: viewerId });
         if (viewerAccount) {
-            if (viewerAccount.friends && viewerAccount.friends.includes(user._id)) {
+            if (viewerAccount.friendsList.some(friend => friend.friendId.toString() === user._id.toString())) {
                 friendStatus = 'friends';
-            } else if (viewerAccount.friendRequests && viewerAccount.friendRequests.includes(user._id)) {
-                friendStatus = 'pending';
+            } else if (viewerAccount.sentFriendRequest.some(request => request.userId.toString() === user._id.toString())) {
+                friendStatus = 'pending_sent';
+            } else if (viewerAccount.receivedFriendRequest.some(request => request.userId.toString() === user._id.toString())) {
+                friendStatus = 'pending_received';
             }
         }
 
         // Prepare the response data
         const responseData = {
+            _id: user._id,
             username,
             biography,
             school: school ? { name: school.schoolName, type: school.schoolType } : null,
@@ -273,7 +276,12 @@ const profileView = async (req, res) => {
             avatar
         };
 
-        return res.json({ data: responseData });
+        return res.json({ 
+            data: {
+                ...responseData,
+                friendStatus
+            }
+        });
 
     } catch (err) {
         console.error("Error in profileView:", err);
