@@ -24,7 +24,7 @@ const getUserMe = async (req, res) => {
   
       // Fetch the associated account information
       const account = await Account.findOne({ userId: user._id })
-        .select('biography school faculty whoView birthday interest')
+        .select('biography school faculty whoView birthday interest avatar')
         .populate('school', 'schoolName schoolType');
   
       // Combine user and account information
@@ -211,26 +211,26 @@ const profileView = async (req, res) => {
         const username = req.params.username.toLowerCase();
         const viewerId = req.userId; // set by your authMiddleware
 
-        const user = await User.findOne({ username }).select('_id');
+        const user = await User.findOne({ username }).select('_id createdAt');
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
 
         const account = await Account.findOne({ userId: user._id })
-            .select('biography school faculty whoView birthday interest')
+            .select('biography school faculty whoView birthday interest instagram avatar')
             .populate('school', 'schoolName schoolType');
 
         if (!account) {
             return res.status(404).json({ message: "Account not found" });
         }
 
-        const { biography, school, faculty, whoView, birthday, interest } = account;
+        const { biography, school, faculty, whoView, birthday, interest, instagram, avatar } = account;
 
         // If the viewer is not the profile owner, update the whoView array
         if (viewerId !== user._id.toString()) {
             const viewerAccount = await Account.findOne({ userId: viewerId });
-            const isVip1 = viewerAccount && viewerAccount.vip.some(vip => vip.vipLevel === 1 && vip.vipExpire > new Date());
+            const isVip1 = viewerAccount && viewerAccount.vip && viewerAccount.vip.some(vip => vip.vipLevel === 1 && vip.vipExpire > new Date());
 
             if (!isVip1) {
                 const alreadyViewed = whoView.some(view => view.userId.toString() === viewerId);
@@ -247,6 +247,17 @@ const profileView = async (req, res) => {
         // Count the number of unique viewers
         const uniqueViewers = new Set(whoView.map(view => view.userId.toString())).size;
 
+        // Determine friend status
+        let friendStatus = 'not_friends';
+        const viewerAccount = await Account.findOne({ userId: viewerId });
+        if (viewerAccount) {
+            if (viewerAccount.friends && viewerAccount.friends.includes(user._id)) {
+                friendStatus = 'friends';
+            } else if (viewerAccount.friendRequests && viewerAccount.friendRequests.includes(user._id)) {
+                friendStatus = 'pending';
+            }
+        }
+
         // Prepare the response data
         const responseData = {
             username,
@@ -255,13 +266,17 @@ const profileView = async (req, res) => {
             faculty,
             uniqueViewers,
             birthday,
-            interest
+            interest,
+            instagram,
+            joinDate: user.createdAt,
+            friendStatus,
+            avatar
         };
 
         return res.json({ data: responseData });
 
     } catch (err) {
-        console.error("Error in otherProfileView:", err);
+        console.error("Error in profileView:", err);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
