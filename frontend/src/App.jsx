@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Club from './pages/Club';
 import Profile from './pages/ProfilePage';
+import EditProfile from './pages/EditProfile';
 
 const App = () => {
   return (
@@ -23,6 +24,7 @@ const App = () => {
             <Route element={<PrivateRoute />}>
               <Route path="/club/:id" element={<Club />} />
               <Route path="/:username" element={<Profile />} />
+              <Route path="/edit-profile" element={<EditProfile />} />
             </Route>
           </Routes>
         </div>

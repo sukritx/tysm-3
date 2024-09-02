@@ -24,7 +24,7 @@ const getUserMe = async (req, res) => {
   
       // Fetch the associated account information
       const account = await Account.findOne({ userId: user._id })
-        .select('biography school faculty whoView birthday interest avatar')
+        .select('biography school faculty whoView birthday interest avatar instagram')
         .populate('school', 'schoolName schoolType');
   
       // Combine user and account information
@@ -33,6 +33,11 @@ const getUserMe = async (req, res) => {
         ...(account ? account.toObject() : {}),
         uniqueViewers: account ? account.whoView.length : 0
       };
+
+      // Remove the whoView field if it exists
+        if (userInfo.whoView) {
+            delete userInfo.whoView;
+        }
   
       res.status(200).json({
         message: "User data retrieved successfully",
@@ -45,49 +50,68 @@ const getUserMe = async (req, res) => {
     }
   };
 
+const getAllSchools = async (req, res) => {
+    try {
+        const schools = await School.find();
+        res.status(200).json({
+            message: "Schools retrieved successfully",
+            schools: schools
+        });
+    } catch (error) {
+        console.error('Error in getAllSchools:', error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 const updateAccountSchema = zod.object({
-    biography: zod.string().max(500).optional(),
-    avatar: zod.string().url().optional(),
-    instagram: zod.string().max(30).optional(),
-    school: zod.string().optional()
-});
+    biography: zod.string().max(500).nullable().optional(),
+    avatar: zod.string().url().nullable().optional(),
+    instagram: zod.string().max(30).nullable().optional(),
+    school: zod.string().nullable().optional(),
+    birthday: zod.string().nullable().optional(),
+    interest: zod.string().max(20).nullable().optional()
+}).strict();
+
 const updateAccount = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        const { success, data } = updateAccountSchema.safeParse(req.body);
+        const { success, data, error } = updateAccountSchema.safeParse(req.body);
         
         if (!success) {
-            return res.status(400).json({ error: "Invalid input data" });
+            console.error('Validation error:', error.format());
+            return res.status(400).json({ error: "Invalid input data", details: error.format() });
         }
 
-        const userId = req.userId; // Assuming this is set by your authMiddleware
+        const userId = req.userId;
 
         const updatedFields = {};
-
-        if (data.avatar !== undefined) {
-            updatedFields.avatar = data.avatar;
-        }
 
         if (data.biography !== undefined) {
             updatedFields.biography = data.biography;
         }
 
         if (data.instagram !== undefined) {
-            const newInstagram = data.instagram.toLowerCase();
-            updatedFields.instagram = newInstagram;
+            updatedFields.instagram = data.instagram ? data.instagram.toLowerCase() : null;
         }
 
         if (data.birthday !== undefined) {
-            updatedFields.birthday = new Date(data.birthday);
+            updatedFields.birthday = data.birthday ? new Date(data.birthday) : null;
         }
 
         if (data.interest !== undefined) {
             updatedFields.interest = data.interest;
         }
 
-        // Fetch the current account to get the old school
+        if (data.school !== undefined) {
+            if (data.school && !mongoose.Types.ObjectId.isValid(data.school)) {
+                return res.status(400).json({ error: "Invalid school ID" });
+            }
+            updatedFields.school = data.school ? new mongoose.Types.ObjectId(data.school) : null;
+        }
+
+        // Fetch the current account
         const currentAccount = await Account.findOne({ userId: userId }).session(session);
         if (!currentAccount) {
             await session.abortTransaction();
@@ -95,15 +119,9 @@ const updateAccount = async (req, res) => {
             return res.status(404).json({ error: "Account not found" });
         }
 
-        const oldSchoolId = currentAccount.school;
-
-        if (data.school !== undefined) {
-            if (!mongoose.Types.ObjectId.isValid(data.school)) {
-                await session.abortTransaction();
-                session.endSession();
-                return res.status(400).json({ error: "Invalid school ID" });
-            }
-            updatedFields.school = new mongoose.Types.ObjectId(data.school);
+        // Handle school update
+        if (updatedFields.school !== undefined && updatedFields.school !== currentAccount.school) {
+            const oldSchoolId = currentAccount.school;
 
             // Remove user from old school if exists
             if (oldSchoolId) {
@@ -113,14 +131,18 @@ const updateAccount = async (req, res) => {
                 }).session(session);
             }
 
-            // Add user to new school
-            await School.findByIdAndUpdate(updatedFields.school, {
-                $addToSet: { members: userId },
-                $inc: { memberCount: 1 }
-            }).session(session);
+            // Add user to new school if a new school is provided
+            if (updatedFields.school) {
+                await School.findByIdAndUpdate(updatedFields.school, {
+                    $addToSet: { members: userId },
+                    $inc: { memberCount: 1 }
+                }).session(session);
+            }
         }
 
         updatedFields.updatedAt = new Date();
+
+        console.log('Updating account with fields:', updatedFields); // For debugging
 
         const updatedAccount = await Account.findOneAndUpdate(
             { userId: userId },
@@ -153,6 +175,46 @@ const updateAccount = async (req, res) => {
         await session.abortTransaction();
         session.endSession();
         console.error("Error updating account:", error);
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+};
+
+const uploadAvatar = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const userId = req.userId; // Assuming this is set by your authMiddleware
+        const avatarUrl = req.body.avatarUrl; // Assuming the avatar URL is sent in the request body
+
+        if (!avatarUrl) {
+            return res.status(400).json({ error: "Avatar URL is required" });
+        }
+
+        const updatedAccount = await Account.findOneAndUpdate(
+            { userId: userId },
+            { $set: { avatar: avatarUrl, updatedAt: new Date() } },
+            { new: true, runValidators: true, session }
+        );
+
+        if (!updatedAccount) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ error: "Account not found" });
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.json({
+            message: "Avatar uploaded successfully",
+            avatar: updatedAccount.avatar
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error("Error uploading avatar:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -431,6 +493,8 @@ const unfriend = async (req, res) => {
 
 module.exports = {
     getUserMe,
+    uploadAvatar,
+    getAllSchools,
     updateAccount,
     getUser,
     profileView,
