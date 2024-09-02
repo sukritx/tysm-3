@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +84,14 @@ const Login = () => {
             </Button>
           </form>
         </CardContent>
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-gray-400">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-blue-400 hover:underline">
+              Sign up here
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );

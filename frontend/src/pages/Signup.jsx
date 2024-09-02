@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -210,15 +210,23 @@ const Signup = () => {
           {step === 1 ? renderStep1() : renderStep2()}
         </CardContent>
         {step === 2 && (
-          <CardFooter>
+          <CardFooter className="flex flex-col space-y-4">
             <Button 
               onClick={() => setStep(1)} 
-              className="w-full mt-2 bg-gray-600 hover:bg-gray-700"
+              className="w-full bg-gray-600 hover:bg-gray-700"
             >
               Back
             </Button>
           </CardFooter>
         )}
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-gray-400">
+            Already have an account?{' '}
+            <Link to="/login" className="text-blue-400 hover:underline">
+              Log in here
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );
