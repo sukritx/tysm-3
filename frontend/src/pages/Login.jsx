@@ -17,6 +17,12 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!username.trim() || !password.trim()) {
+      setError('Please fill in both username and password.');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -55,7 +61,6 @@ const Login = () => {
                 placeholder="Enter your username"
                 className="bg-gray-700 text-white border-gray-600"
                 disabled={loading}
-                required
               />
             </div>
             <div className="space-y-2">
@@ -68,21 +73,17 @@ const Login = () => {
                 placeholder="Enter your password"
                 className="bg-gray-700 text-white border-gray-600"
                 disabled={loading}
-                required
               />
             </div>
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700" 
+              disabled={loading}
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </Button>
           </form>
         </CardContent>
-        <CardFooter>
-          <Button 
-            type="submit" 
-            className="w-full bg-blue-600 hover:bg-blue-700" 
-            disabled={loading}
-            onClick={handleLogin}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );
