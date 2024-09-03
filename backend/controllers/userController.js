@@ -8,36 +8,32 @@ require('dotenv').config()
 
 const getUserMe = async (req, res) => {
     try {
-      // The user ID should be attached to the request by the auth middleware
       const userId = req.userId;
   
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
   
-      // Fetch the user from the database
       const user = await User.findById(userId).select('-password');
   
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
   
-      // Fetch the associated account information
       const account = await Account.findOne({ userId: user._id })
-        .select('biography school faculty whoView birthday interest avatar instagram')
+        .select('biography school faculty whoView birthday interest instagram avatar')
         .populate('school', 'schoolName schoolType');
   
-      // Combine user and account information
       const userInfo = {
         ...user.toObject(),
         ...(account ? account.toObject() : {}),
-        uniqueViewers: account ? account.whoView.length : 0
+        uniqueViewers: account ? account.whoView.length : 0,
+        id: user._id // Explicitly set the id to the User's _id
       };
 
-      // Remove the whoView field if it exists
-        if (userInfo.whoView) {
-            delete userInfo.whoView;
-        }
+      if (userInfo.whoView) {
+          delete userInfo.whoView;
+      }
   
       res.status(200).json({
         message: "User data retrieved successfully",

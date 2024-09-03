@@ -16,29 +16,27 @@ export const AuthProvider = ({ children }) => {
 
       if (token && storedUser) {
         try {
-          // Verify token with the backend
           const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           console.log('User verification response:', response.data);
           
           if (response.data && response.data.user) {
-            setUser(response.data.user);
+            const userData = response.data.user;
+            setUser(userData);
+            localStorage.setItem('user', JSON.stringify(userData));
           } else {
             console.warn('User data not found in response. Using stored user data.');
             setUser(JSON.parse(storedUser));
           }
         } catch (error) {
           console.error('Error verifying token:', error);
-          if (error.response && error.response.status === 404) {
-            console.warn('Token verification endpoint not found. Using stored user data.');
-            setUser(JSON.parse(storedUser));
-          } else {
-            console.warn('Token verification failed. Clearing stored data.');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-          }
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
         }
+      } else {
+        setUser(null);
       }
       setLoading(false);
     };
@@ -60,11 +58,15 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', response.data.token);
         console.log('Token stored:', response.data.token);
 
-        // Use the user data from the response if available, otherwise create a basic user object
-        const userData = response.data.user || { username: username };
+        // Fetch user data after successful login
+        const userResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {
+          headers: { Authorization: `Bearer ${response.data.token}` }
+        });
+
+        const userData = userResponse.data.user;
+        setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         console.log('User data stored:', userData);
-        setUser(userData);
         return true;
       } else {
         console.error('Login failed: No token in response');

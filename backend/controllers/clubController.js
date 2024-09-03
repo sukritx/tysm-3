@@ -144,8 +144,86 @@ const addClub = async (req, res) => {
     }
 };
 
+const goToClub = async (req, res) => {
+    try {
+        const { clubId } = req.params;
+        const userId = req.userId;
+
+        if (!mongoose.Types.ObjectId.isValid(clubId)) {
+            return res.status(400).json({ message: "Invalid club ID" });
+        }
+
+        const club = await Club.findById(clubId);
+        if (!club) {
+            return res.status(404).json({ message: "Club not found" });
+        }
+
+        // Check if the user is already going to this club today
+        const alreadyGoing = club.goingToday.some(person => person.userId.toString() === userId);
+        if (alreadyGoing) {
+            return res.status(400).json({ message: "You're already going to this club today" });
+        }
+
+        // Add user to goingToday array and increment todayCount
+        club.goingToday.push({ userId });
+        club.todayCount += 1;
+
+        await club.save();
+
+        res.status(200).json({
+            message: "Successfully added to club's going today list",
+            clubName: club.clubName,
+            todayCount: club.todayCount
+        });
+
+    } catch (error) {
+        console.error("Error in goToClub:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+const undoGoToClub = async (req, res) => {
+    try {
+        const { clubId } = req.params;
+        const userId = req.userId;
+
+        if (!mongoose.Types.ObjectId.isValid(clubId)) {
+            return res.status(400).json({ message: "Invalid club ID" });
+        }
+
+        const club = await Club.findById(clubId);
+        if (!club) {
+            return res.status(404).json({ message: "Club not found" });
+        }
+
+        // Check if the user is in the goingToday array
+        const userIndex = club.goingToday.findIndex(person => person.userId.toString() === userId);
+        if (userIndex === -1) {
+            return res.status(400).json({ message: "You're not in the going today list for this club" });
+        }
+
+        // Remove user from goingToday array and decrement todayCount
+        club.goingToday.splice(userIndex, 1);
+        club.todayCount -= 1;
+
+        await club.save();
+
+        res.status(200).json({
+            message: "Successfully removed from club's going today list",
+            clubName: club.clubName,
+            todayCount: club.todayCount
+        });
+
+    } catch (error) {
+        console.error("Error in undoGoToClub:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 module.exports = {
     getClubs,
     getPeopleGoingToday,
-    addClub
+    addClub,
+    goToClub,
+    undoGoToClub
 }
