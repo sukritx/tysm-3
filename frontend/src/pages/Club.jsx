@@ -8,6 +8,8 @@ import { UserRound, Users, Calendar, ArrowLeft, CheckCircle } from 'lucide-react
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { Input } from "@/components/ui/input";
+import { Link as LinkIcon, Copy } from 'lucide-react';
 
 const Club = () => {
   const { id } = useParams();
@@ -17,6 +19,8 @@ const Club = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isGoingToday, setIsGoingToday] = useState(false); // Initialize to false
+  const [inviteLink, setInviteLink] = useState('');
+  const [showInviteLink, setShowInviteLink] = useState(false);
 
   const fetchClubData = async () => {
     if (!user) {
@@ -98,6 +102,27 @@ const Club = () => {
     }
   };
 
+  const generateInviteLink = async () => {
+    try {
+      const token = await getToken();
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/invite/send`, { clubId: id }, config);
+      setInviteLink(response.data.inviteUrl);
+      setShowInviteLink(true);
+    } catch (error) {
+      console.error('Error generating invite link:', error);
+      toast.error('Failed to generate invite link');
+    }
+  };
+
+  const copyInviteLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    toast.success('Invite link copied to clipboard!');
+  };
+
   if (loading) {
     return (
       <motion.div
@@ -158,8 +183,33 @@ const Club = () => {
                   }`}
                   onClick={handleGoingToday}
                 >
-                  {isGoingToday ? 'ยกเลิกการไป' : 'ไปวันนี้'}
+                  {isGoingToday ? 'ไม่ไปละ' : 'ไปวันนี้'}
                 </Button>
+                
+                {isGoingToday && (
+                  <div className="mt-4">
+                    <Button
+                      onClick={generateInviteLink}
+                      className="w-full bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                      สร้างลิงก์เชิญเพื่อน
+                    </Button>
+                    
+                    {showInviteLink && (
+                      <div className="mt-2 flex">
+                        <Input
+                          value={inviteLink}
+                          readOnly
+                          className="flex-grow bg-gray-700 text-white"
+                        />
+                        <Button onClick={copyInviteLink} className="ml-2 bg-gray-600 hover:bg-gray-500">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-[#00BAFA] mb-4">รายชื่อผู้เข้าร่วม</h3>
@@ -182,7 +232,7 @@ const Club = () => {
                         <Link to={`/${person.username}`} className="flex-grow text-white hover:text-[#00BAFA] transition duration-300">
                           {person.username}
                         </Link>
-                        {person.isFriend && <span className="text-xl" role="img" aria-label="Friend">👥</span>}
+                        {person.isFriend && <span className="text-xl" role="img" aria-label="Friend">👥✨</span>}
                       </motion.li>
                     ))}
                   </ul>

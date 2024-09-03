@@ -11,6 +11,7 @@ import Club from './pages/Club';
 import Profile from './pages/ProfilePage';
 import EditProfile from './pages/EditProfile';
 import AddClub from './pages/AddClub';
+import InviteCard from './pages/inviteCard';
 
 const App = () => {
   return (
@@ -22,6 +23,7 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/invite/:inviteLink" element={<InviteCard />} />
             <Route element={<PrivateRoute />}>
               <Route path="/club/:id" element={<Club />} />
               <Route path="/:username" element={<Profile />} />

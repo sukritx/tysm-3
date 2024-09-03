@@ -66,7 +66,7 @@ const getInviteDetails = async (req, res) => {
 
         const invite = await InviteCard.findOne({ inviteLink })
             .populate('userId', 'username')
-            .populate('club', 'clubName')
+            .populate('club', 'clubName _id') // Include _id when populating club
             .populate('accepted', 'username');
 
         if (!invite) {
@@ -78,16 +78,13 @@ const getInviteDetails = async (req, res) => {
             return res.status(410).json({ error: "Invite has expired" });
         }
 
-        const acceptedUsers = await Promise.all(invite.accepted.map(async (user) => {
-            const account = await Account.findOne({ userId: user._id }).populate('school', 'schoolName');
-            return {
-                username: user.username,
-                schoolName: account?.school?.schoolName || null
-            };
+        const acceptedUsers = invite.accepted.map(user => ({
+            username: user.username
         }));
 
         res.json({
             from: invite.userId.username,
+            clubId: invite.club._id.toString(), // Include the club ID
             clubName: invite.club.clubName,
             date: invite.inviteDate,
             expiresAt: invite.expiresAt,
@@ -103,40 +100,73 @@ const getInviteDetails = async (req, res) => {
 // Function to respond to an invite
 const respondToInvite = async (req, res) => {
     try {
-        const { inviteLink } = req.body;
-        const userId = req.userId; // Will be undefined for non-logged-in users
+        const { inviteLink, accept } = req.body;
+        const userId = req.userId; // Set by optionalAuthMiddleware
+
+        console.log('Responding to invite:', { inviteLink, accept, userId });
+
+        if (!userId) {
+            // User is not logged in, redirect to login
+            return res.json({ redirect: '/login', inviteLink });
+        }
 
         const invite = await InviteCard.findOne({ inviteLink });
         if (!invite) {
             return res.status(404).json({ error: "Invite not found" });
         }
 
+        console.log('Invite found:', invite);
+
         // Check if the invite has expired
         if (invite.expiresAt < new Date()) {
             return res.status(410).json({ error: "Invite has expired" });
         }
 
-        if (!userId) {
-            // User is not logged in, redirect to registration
-            return res.json({ redirect: '/register', inviteLink });
+        // Check if the user is the one who created the invite
+        if (invite.userId.toString() === userId) {
+            return res.status(400).json({ error: "You cannot accept your own invite" });
         }
 
-        // Check if user has already accepted this invite
-        if (invite.accepted.includes(userId)) {
-            return res.status(400).json({ error: "You've already accepted this invite" });
+        if (accept) {
+            // Check if user has already accepted this invite
+            if (invite.accepted.includes(userId)) {
+                return res.status(400).json({ error: "You've already accepted this invite" });
+            }
+
+            // Check if the user is already going to this club today
+            const club = await Club.findById(invite.club);
+            if (!club) {
+                return res.status(404).json({ error: "Club not found" });
+            }
+
+            const alreadyGoing = club.goingToday.some(entry => entry.userId.toString() === userId);
+            if (alreadyGoing) {
+                return res.status(400).json({ error: "You're already going to this club today" });
+            }
+
+            // Add user to the accepted list
+            invite.accepted.push(userId);
+            await invite.save();
+
+            console.log('Invite updated:', invite);
+
+            // Add user to the club's goingToday list
+            const updatedClub = await Club.findByIdAndUpdate(
+                invite.club,
+                {
+                    $addToSet: { goingToday: { userId } },
+                    $inc: { todayCount: 1 }
+                },
+                { new: true }
+            );
+
+            console.log('Club updated:', updatedClub);
+
+            res.json({ message: "You're going to the club!", clubId: updatedClub._id.toString() });
+        } else {
+            // Invitation declined
+            res.json({ message: "Invitation declined" });
         }
-
-        // Add user to the accepted list
-        invite.accepted.push(userId);
-        await invite.save();
-
-        // Add user to the club's goingToday list
-        await Club.findByIdAndUpdate(invite.club, {
-            $addToSet: { goingToday: { userId } },
-            $inc: { todayCount: 1 }
-        });
-
-        res.json({ message: "You're going to the club!" });
 
     } catch (error) {
         console.error("Error in respondToInvite:", error);

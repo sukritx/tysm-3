@@ -2,19 +2,22 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 const optionalAuthMiddleware = (req, res, next) => {
-    const token = req.cookies.jwt;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (token) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             req.userId = decoded.userId;
+            console.log('User authenticated:', req.userId);
         } catch (err) {
-            // If there's an error processing the token, we'll just not set req.userId
-            console.error('Error processing auth token:', err);
+            console.error('Error processing auth token:', err.message);
+            // Don't set req.userId if there's an error
         }
+    } else {
+        console.log('No authentication token found');
     }
 
-    // Always call next(), whether or not we found and processed a valid token
     next();
 };
 
