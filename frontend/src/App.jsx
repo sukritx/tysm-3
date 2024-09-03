@@ -10,6 +10,7 @@ import Signup from './pages/Signup';
 import Club from './pages/Club';
 import Profile from './pages/ProfilePage';
 import EditProfile from './pages/EditProfile';
+import AddClub from './pages/AddClub';
 
 const App = () => {
   return (
@@ -25,6 +26,7 @@ const App = () => {
               <Route path="/club/:id" element={<Club />} />
               <Route path="/:username" element={<Profile />} />
               <Route path="/edit-profile" element={<EditProfile />} />
+              <Route path="/add-club" element={<AddClub />} />
             </Route>
           </Routes>
         </div>
