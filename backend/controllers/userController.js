@@ -244,7 +244,8 @@ const getUser = async (req, res) => {
                     _id: 1,
                     instagram: 1,
                     username: "$userDetails.username",
-                    userId: "$userDetails._id"
+                    userId: "$userDetails._id",
+                    avatar: 1
                 }
             }
         ]);
@@ -254,7 +255,8 @@ const getUser = async (req, res) => {
                 _id: user._id,
                 userId: user.userId,
                 instagram: user.instagram,
-                username: user.username
+                username: user.username,
+                avatar: user.avatar
             }))
         });
 
