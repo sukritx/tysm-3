@@ -26,7 +26,7 @@ const Navbar = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [unreadNotifications, setUnreadNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
@@ -73,21 +73,21 @@ const Navbar = () => {
   }, [searchQuery, getToken]);
 
   useEffect(() => {
-    const fetchUnreadNotifications = async () => {
+    const fetchNotifications = async () => {
       if (user) {
         try {
           const token = getToken();
           const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/notification`, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          setUnreadNotifications(response.data);
+          setNotifications(response.data);
         } catch (error) {
-          console.error('Error fetching unread notifications:', error);
+          console.error('Error fetching notifications:', error);
         }
       }
     };
 
-    fetchUnreadNotifications();
+    fetchNotifications();
   }, [user, getToken]);
 
   const handleLogout = () => {
@@ -101,15 +101,17 @@ const Navbar = () => {
 
   const handleNotificationClick = async (notification) => {
     try {
-      const token = getToken();
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/v1/notification/${notification._id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      // Update the local state to reflect the change
-      setUnreadNotifications(prevNotifications => 
-        prevNotifications.filter(n => n._id !== notification._id)
-      );
+      if (!notification.read) {
+        const token = getToken();
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/v1/notification/${notification._id}/read`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        // Update the local state to reflect the change
+        setNotifications(prevNotifications => 
+          prevNotifications.map(n => n._id === notification._id ? { ...n, read: true } : n)
+        );
+      }
 
       // Navigate to the sender's profile page
       if (notification.notificationType === "receivedFriendRequest" || notification.notificationType === "friendAdded") {
@@ -119,9 +121,11 @@ const Navbar = () => {
       // Close the notifications dropdown
       setShowNotifications(false);
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Error handling notification click:', error);
     }
   };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <header className="flex h-20 w-full shrink-0 items-center px-4 md:px-6 bg-gray-900">
@@ -157,29 +161,37 @@ const Navbar = () => {
                 )}
               >
                 <Bell className="h-5 w-5" />
-                {unreadNotifications.length > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                    {unreadNotifications.length}
+                    {unreadCount}
                   </span>
                 )}
               </Button>
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {unreadNotifications.length > 0 ? (
-                    unreadNotifications.map((notification) => (
+                  {notifications.length > 0 ? (
+                    notifications.map((notification) => (
                       <div 
                         key={notification._id} 
-                        className="px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 cursor-pointer"
+                        className={cn(
+                          "px-4 py-2 text-sm cursor-pointer",
+                          notification.read 
+                            ? "bg-gray-800 text-gray-400 hover:bg-gray-700" 
+                            : "bg-gray-700 text-white font-semibold hover:bg-gray-600"
+                        )}
                         onClick={() => handleNotificationClick(notification)}
                       >
                         <p>{notification.notificationType === "receivedFriendRequest" 
                             ? `${notification.sender.username} sent you a friend request` 
                             : `${notification.sender.username} accepted your friend request`}
                         </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </p>
                       </div>
                     ))
                   ) : (
-                    <div className="px-4 py-2 text-sm text-gray-400">No new notifications</div>
+                    <div className="px-4 py-2 text-sm text-gray-400">No notifications</div>
                   )}
                 </div>
               )}
