@@ -69,6 +69,21 @@ const notificationController = {
       console.error("Error marking notification as read:", error);
       res.status(500).json({ message: "Internal server error", error: error.message });
     }
+  },
+
+  // Get all notifications for a user
+  getAllNotifications: async (req, res) => {
+    try {
+      const userId = req.userId;
+      const notifications = await Notification.find({ receiver: userId })
+        .populate('sender', 'username')
+        .sort({ createdAt: -1 });
+
+      res.status(200).json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+    }
   }
 };
 

@@ -5,7 +5,12 @@ const { notificationController } = require("../controllers/notificationControlle
 
 const router = express.Router();
 
-router.get("/", authMiddleware, notificationController.getUnreadNotifications);
+// get unread notifications
+router.get("/unread", authMiddleware, notificationController.getUnreadNotifications);
+
+// get all notifications
+router.get("/", authMiddleware, notificationController.getAllNotifications);
+
 router.put("/:notificationId/read", authMiddleware, notificationController.markNotificationAsRead);
 
 module.exports = router;

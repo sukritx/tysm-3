@@ -14,9 +14,9 @@ import {
 import axios from 'axios';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import tysmLogo from "../assets/tysm-logo.png";
-import { Search, Instagram } from "lucide-react";
+import { Search, Instagram, Bell } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils"; // Make sure you have this utility function
+import { cn } from "@/lib/utils";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -26,6 +26,8 @@ const Navbar = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [unreadNotifications, setUnreadNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -70,6 +72,24 @@ const Navbar = () => {
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, getToken]);
 
+  useEffect(() => {
+    const fetchUnreadNotifications = async () => {
+      if (user) {
+        try {
+          const token = getToken();
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/notification`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setUnreadNotifications(response.data);
+        } catch (error) {
+          console.error('Error fetching unread notifications:', error);
+        }
+      }
+    };
+
+    fetchUnreadNotifications();
+  }, [user, getToken]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -77,6 +97,30 @@ const Navbar = () => {
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
+  };
+
+  const handleNotificationClick = async (notification) => {
+    try {
+      const token = getToken();
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/v1/notification/${notification._id}/read`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Update the local state to reflect the change
+      setUnreadNotifications(prevNotifications => 
+        prevNotifications.filter(n => n._id !== notification._id)
+      );
+
+      // Navigate to the sender's profile page
+      if (notification.notificationType === "receivedFriendRequest" || notification.notificationType === "friendAdded") {
+        navigate(`/${notification.sender.username}`);
+      }
+
+      // Close the notifications dropdown
+      setShowNotifications(false);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
   return (
@@ -101,59 +145,99 @@ const Navbar = () => {
       </NavigationMenu>
       <div className="ml-auto flex gap-2 items-center">
         {user && (
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSearch(!showSearch)}
-              className={cn(
-                "text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-200",
-                showSearch && "bg-gray-800 text-white"
-              )}
-            >
-              <Search className="h-5 w-5" />
-            </Button>
-            {showSearch && (
-              <div className="absolute right-0 mt-2 w-64">
-                <Input
-                  type="search"
-                  placeholder="Search users..."
-                  className="w-full bg-gray-800 text-white border-gray-700"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-                {searchResults.length > 0 && (
-                  <div className="mt-2 bg-gray-800 border border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                    {searchResults.map((user) => (
-                      <Link
-                        key={user.userId}
-                        to={`/${user.username}`}
-                        className="flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
-                        onClick={() => setShowSearch(false)}
-                      >
-                        <Avatar className="h-8 w-8 mr-2">
-                          {user.avatar ? (
-                            <img src={user.avatar} alt={user.username} className="h-full w-full object-cover" />
-                          ) : (
-                            <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
-                          )}
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span>{user.username}</span>
-                          {user.instagram && (
-                            <span className="text-xs text-gray-400 flex items-center">
-                              <Instagram className="h-3 w-3 mr-1" />
-                              {user.instagram}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+          <>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowNotifications(!showNotifications)}
+                className={cn(
+                  "text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-200",
+                  showNotifications && "bg-gray-800 text-white"
                 )}
-              </div>
-            )}
-          </div>
+              >
+                <Bell className="h-5 w-5" />
+                {unreadNotifications.length > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                    {unreadNotifications.length}
+                  </span>
+                )}
+              </Button>
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {unreadNotifications.length > 0 ? (
+                    unreadNotifications.map((notification) => (
+                      <div 
+                        key={notification._id} 
+                        className="px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 cursor-pointer"
+                        onClick={() => handleNotificationClick(notification)}
+                      >
+                        <p>{notification.notificationType === "receivedFriendRequest" 
+                            ? `${notification.sender.username} sent you a friend request` 
+                            : `${notification.sender.username} accepted your friend request`}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-2 text-sm text-gray-400">No new notifications</div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSearch(!showSearch)}
+                className={cn(
+                  "text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-200",
+                  showSearch && "bg-gray-800 text-white"
+                )}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+              {showSearch && (
+                <div className="absolute right-0 mt-2 w-64">
+                  <Input
+                    type="search"
+                    placeholder="Search users..."
+                    className="w-full bg-gray-800 text-white border-gray-700"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                  />
+                  {searchResults.length > 0 && (
+                    <div className="mt-2 bg-gray-800 border border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {searchResults.map((user) => (
+                        <Link
+                          key={user.userId}
+                          to={`/${user.username}`}
+                          className="flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
+                          onClick={() => setShowSearch(false)}
+                        >
+                          <Avatar className="h-8 w-8 mr-2">
+                            {user.avatar ? (
+                              <img src={user.avatar} alt={user.username} className="h-full w-full object-cover" />
+                            ) : (
+                              <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                            )}
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <span>{user.username}</span>
+                            {user.instagram && (
+                              <span className="text-xs text-gray-400 flex items-center">
+                                <Instagram className="h-3 w-3 mr-1" />
+                                {user.instagram}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
         )}
         {user ? (
           <DropdownMenu>
