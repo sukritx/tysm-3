@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp, Check } from 'lucide-react';
 
 const AddClub = () => {
+  const location = useLocation();
   const [clubName, setClubName] = useState('');
-  const [province, setProvince] = useState('');
+  const [province, setProvince] = useState(location.state?.selectedProvince || '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -43,6 +44,12 @@ const AddClub = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (location.state?.selectedProvince) {
+      setProvince(location.state.selectedProvince);
+    }
+  }, [location.state]);
 
   const filteredProvinces = provinces.filter(prov =>
     prov.toLowerCase().includes(searchTerm.toLowerCase())
