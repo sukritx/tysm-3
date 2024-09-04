@@ -128,7 +128,7 @@ const Navbar = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="flex h-20 w-full shrink-0 items-center px-4 md:px-6 bg-gray-900">
+    <header className="flex h-20 w-full shrink-0 items-center px-4 md:px-6 bg-gray-900 relative z-10">
       <Link to="/" className="mr-6 flex items-center">
         <img src={tysmLogo} alt="TYSM Logo" className="h-8 w-auto" />
         <span className="sr-only">TYSM</span>
@@ -168,7 +168,7 @@ const Navbar = () => {
                 )}
               </Button>
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto z-50">
                   {notifications.length > 0 ? (
                     notifications.map((notification) => (
                       <div 
@@ -209,7 +209,7 @@ const Navbar = () => {
                 <Search className="h-5 w-5" />
               </Button>
               {showSearch && (
-                <div className="absolute right-0 mt-2 w-64">
+                <div className="absolute right-0 mt-2 w-64 z-50">
                   <Input
                     type="search"
                     placeholder="Search users..."
