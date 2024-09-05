@@ -55,7 +55,15 @@ const postSignup = async (req, res) => {
 
         await Account.create({
             userId: user._id,
-            instagram: instagram.toLowerCase()
+            instagram: instagram.toLowerCase(),
+            coin: {
+                balance: 10,
+                transactions: [{
+                    amount: 10,
+                    type: 'earn',
+                    reason: 'Sign-up bonus'
+                }]
+            }
         });
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });

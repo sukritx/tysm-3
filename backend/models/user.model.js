@@ -105,6 +105,33 @@ const accountSchema = new mongoose.Schema({
             required: true
         }
     }],
+    coin: {
+        balance: {
+            type: Number,
+            default: 0,
+            min: 0,
+            required: true
+        },
+        transactions: [{
+            amount: {
+                type: Number,
+                required: true
+            },
+            type: {
+                type: String,
+                enum: ['deposit', 'earn', 'spend'],
+                required: true
+            },
+            reason: {
+                type: String,
+                required: true
+            },
+            timestamp: {
+                type: Date,
+                default: Date.now
+            }
+        }]
+    },
     joinDate: {
         type: Date,
         default: Date.now
