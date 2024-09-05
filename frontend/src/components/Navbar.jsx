@@ -14,7 +14,7 @@ import {
 import axios from 'axios';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import tysmLogo from "../assets/tysm-logo.png";
-import { Search, Instagram, Bell } from "lucide-react";
+import { Search, Instagram, Bell, Coins } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,7 @@ const Navbar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [coinBalance, setCoinBalance] = useState(0);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -39,6 +40,7 @@ const Navbar = () => {
           });
           setAvatar(response.data.user.avatar);
           setUsername(response.data.user.username);
+          setCoinBalance(response.data.user.coinBalance);
         } catch (error) {
           console.error('Error fetching user data:', error);
         }
@@ -150,6 +152,10 @@ const Navbar = () => {
       <div className="ml-auto flex gap-2 items-center">
         {user && (
           <>
+            <div className="flex items-center mr-4 text-[#00BAFA]">
+              <Coins className="w-5 h-5 mr-1" />
+              <span>{coinBalance}</span>
+            </div>
             <div className="relative">
               <Button
                 variant="ghost"

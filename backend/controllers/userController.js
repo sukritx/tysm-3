@@ -21,14 +21,15 @@ const getUserMe = async (req, res) => {
       }
   
       const account = await Account.findOne({ userId: user._id })
-        .select('biography school faculty whoView birthday interest instagram avatar')
+        .select('biography school faculty whoView birthday interest instagram avatar coin')
         .populate('school', 'schoolName schoolType');
   
       const userInfo = {
         ...user.toObject(),
         ...(account ? account.toObject() : {}),
         uniqueViewers: account ? account.whoView.length : 0,
-        id: user._id // Explicitly set the id to the User's _id
+        id: user._id,
+        coinBalance: account ? account.coin.balance : 0
       };
 
       if (userInfo.whoView) {
