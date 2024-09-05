@@ -11,7 +11,7 @@ import Club from './pages/Club';
 import Profile from './pages/ProfilePage';
 import EditProfile from './pages/EditProfile';
 import AddClub from './pages/AddClub';
-import InviteCard from './pages/inviteCard';
+import InviteCard from './pages/InviteCard';
 
 const App = () => {
   return (
