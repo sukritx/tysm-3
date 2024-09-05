@@ -14,7 +14,7 @@ import {
 import axios from 'axios';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import tysmLogo from "../assets/tysm-logo.png";
-import { Search, Instagram, Bell, Coins } from "lucide-react";
+import { Search, Instagram, Bell, Coins, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [coinBalance, setCoinBalance] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -90,6 +91,24 @@ const Navbar = () => {
     };
 
     fetchNotifications();
+  }, [user, getToken]);
+
+  useEffect(() => {
+    const fetchUnreadMessages = async () => {
+      if (user) {
+        try {
+          const token = getToken();
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/message/unread-count`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setUnreadMessages(response.data.unreadCount);
+        } catch (error) {
+          console.error('Error fetching unread messages:', error);
+        }
+      }
+    };
+
+    fetchUnreadMessages();
   }, [user, getToken]);
 
   const handleLogout = () => {
@@ -156,6 +175,19 @@ const Navbar = () => {
               <Coins className="w-5 h-5 mr-1" />
               <span>{coinBalance}</span>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/messages')}
+              className="text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-200 relative"
+            >
+              <MessageSquare className="h-5 w-5" />
+              {unreadMessages > 0 && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                  {unreadMessages}
+                </span>
+              )}
+            </Button>
             <div className="relative">
               <Button
                 variant="ghost"

@@ -1,4 +1,3 @@
-// App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -12,8 +11,10 @@ import Profile from './pages/ProfilePage';
 import EditProfile from './pages/EditProfile';
 import AddClub from './pages/AddClub';
 import InviteCard from './pages/InviteCard';
+import Messages from './pages/Messages';
+import { Toaster } from 'react-hot-toast';
 
-const App = () => {
+function App() {
   return (
     <AuthProvider>
       <Router>
@@ -29,12 +30,14 @@ const App = () => {
               <Route path="/:username" element={<Profile />} />
               <Route path="/edit-profile" element={<EditProfile />} />
               <Route path="/add-club" element={<AddClub />} />
+              <Route path="/messages" element={<Messages />} />
             </Route>
           </Routes>
+          <Toaster position="top-right" />
         </div>
       </Router>
     </AuthProvider>
   );
-};
+}
 
 export default App;

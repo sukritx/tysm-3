@@ -6,6 +6,8 @@ import { Avatar } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { InstagramIcon } from 'lucide-react';
+import { Textarea } from "../components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -16,6 +18,10 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [friendStatus, setFriendStatus] = useState(null);
+  const [message, setMessage] = useState('');
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [messageSent, setMessageSent] = useState(false);
+  const [coinBalance, setCoinBalance] = useState(0);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -39,8 +45,24 @@ const ProfilePage = () => {
       }
     };
 
+    const fetchUserData = async () => {
+      try {
+        const token = auth.getToken();
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCoinBalance(response.data.user.coinBalance);
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+      }
+    };
+
     if (auth.user) {
       fetchProfileData();
+      fetchUserData();
     } else {
       setLoading(false);
       setError('User not authenticated');
@@ -79,6 +101,29 @@ const ProfilePage = () => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date instanceof Date && !isNaN(date) ? date.toLocaleDateString() : 'Invalid Date';
+  };
+
+  const handleSendMessage = async () => {
+    try {
+      const token = auth.getToken();
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/message/${profileData._id}`, 
+        { message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessageSent(true);
+      setMessage('');
+      // Refresh user data to get updated coin balance
+      const userResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCoinBalance(userResponse.data.user.coinBalance);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError('Failed to send message. Please try again.');
+    }
   };
 
   if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -189,6 +234,29 @@ const ProfilePage = () => {
                 {friendStatus === undefined && (
                   <p>Friend status is undefined</p>
                 )}
+                <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="ml-2">
+                      Send Message
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Send Message to {username}</DialogTitle>
+                    </DialogHeader>
+                    <Textarea
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Type your message here..."
+                      className="mt-2"
+                    />
+                    <Button onClick={handleSendMessage} disabled={!message.trim() || coinBalance < 1}>
+                      Send (1 Coin)
+                    </Button>
+                    {messageSent && <p className="text-green-500 mt-2">Message sent successfully!</p>}
+                    {coinBalance < 1 && <p className="text-red-500 mt-2">Insufficient coins to send message</p>}
+                  </DialogContent>
+                </Dialog>
               </>
             )}
           </div>
