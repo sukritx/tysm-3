@@ -13,6 +13,7 @@ import AddClub from './pages/AddClub';
 import InviteCard from './pages/InviteCard';
 import Messages from './pages/Messages';
 import { Toaster } from 'react-hot-toast';
+import Sales from './pages/Sales';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
               <Route path="/edit-profile" element={<EditProfile />} />
               <Route path="/add-club" element={<AddClub />} />
               <Route path="/messages" element={<Messages />} />
+              <Route path="/sales" element={<Sales />} />
             </Route>
           </Routes>
           <Toaster position="top-right" />

@@ -148,6 +148,10 @@ const Navbar = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const goToSalesPage = () => {
+    navigate('/sales');
+  };
+
   return (
     <header className="flex h-20 w-full shrink-0 items-center px-4 md:px-6 bg-gray-900 relative z-10">
       <Link to="/" className="mr-6 flex items-center">
@@ -171,7 +175,11 @@ const Navbar = () => {
       <div className="ml-auto flex gap-2 items-center">
         {user && (
           <>
-            <div className="flex items-center mr-4 text-[#00BAFA]">
+            <div 
+              className="flex items-center mr-4 text-[#00BAFA] cursor-pointer hover:text-[#0095c8] transition-colors duration-200"
+              onClick={goToSalesPage}
+              title="Buy Coins"
+            >
               <Coins className="w-5 h-5 mr-1" />
               <span>{coinBalance}</span>
             </div>
