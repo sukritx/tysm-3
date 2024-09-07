@@ -12,7 +12,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -28,8 +28,8 @@ const Login = () => {
     try {
       const success = await login(username, password);
       if (success) {
-        console.log('Login successful, navigating to home'); // Debug log
-        navigate('/');
+        console.log('Login successful');
+        // Remove the navigation from here
       } else {
         setError('Login failed. Please check your credentials.');
       }
@@ -40,6 +40,19 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // Add this effect to handle navigation after successful login
+  React.useEffect(() => {
+    if (user) {
+      if (user.isAdmin) {
+        console.log('Admin user logged in, navigating to admin dashboard');
+        navigate('/admin/dashboard');
+      } else {
+        console.log('Regular user logged in, navigating to home');
+        navigate('/');
+      }
+    }
+  }, [user, navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 p-4">

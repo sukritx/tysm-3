@@ -1,10 +1,12 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,27 +48,37 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      console.log('Attempting login for:', username);
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/login`, {
         username,
         password
       });
-      
-      console.log('Login response:', response.data);
 
       if (response.data && response.data.token) {
         localStorage.setItem('token', response.data.token);
-        console.log('Token stored:', response.data.token);
 
-        // Fetch user data after successful login
         const userResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {
           headers: { Authorization: `Bearer ${response.data.token}` }
         });
 
         const userData = userResponse.data.user;
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-        console.log('User data stored:', userData);
+        const userDataWithAdmin = {
+          ...userData,
+          isAdmin: userData.isAdmin || false
+        };
+
+        setUser(userDataWithAdmin);
+        localStorage.setItem('user', JSON.stringify(userDataWithAdmin));
+        console.log('User data stored:', userDataWithAdmin);
+
+        // Redirect based on user role
+        if (userDataWithAdmin.isAdmin) {
+          console.log('Admin user logged in, redirecting to admin dashboard');
+          navigate('/admin/dashboard');
+        } else {
+          console.log('Regular user logged in, redirecting to home');
+          navigate('/');
+        }
+
         return true;
       } else {
         console.error('Login failed: No token in response');
@@ -85,11 +97,11 @@ export const AuthProvider = ({ children }) => {
     console.log('Logged out, token and user removed from storage');
   };
 
-  const getToken = () => {
+  const getToken = useCallback(() => {
     const token = localStorage.getItem('token');
     console.log('Retrieved token:', token);
     return token;
-  };
+  }, []);
 
   // New function to update user data
   const updateUser = (userData) => {
@@ -98,8 +110,30 @@ export const AuthProvider = ({ children }) => {
     console.log('User data updated:', userData);
   };
 
+  const checkAuth = useCallback(async () => {
+    const token = getToken();
+    if (token && !user) {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const userData = response.data.user;
+        setUser({
+          ...userData,
+          isAdmin: userData.isAdmin || false
+        });
+        return true;
+      } catch (error) {
+        console.error('Error checking auth:', error);
+        logout();
+        return false;
+      }
+    }
+    return !!user;
+  }, [getToken, user]);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, getToken, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, getToken, updateUser, checkAuth, loading }}>
       {children}
     </AuthContext.Provider>
   );

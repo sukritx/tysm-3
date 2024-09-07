@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './PrivateRoute';
+import AdminRoute from './AdminRoute';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -14,11 +15,12 @@ import InviteCard from './pages/InviteCard';
 import Messages from './pages/Messages';
 import { Toaster } from 'react-hot-toast';
 import Sales from './pages/Sales';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <div className="min-h-screen bg-gray-900 text-white">
           <Navbar />
           <Routes>
@@ -34,11 +36,14 @@ function App() {
               <Route path="/messages" element={<Messages />} />
               <Route path="/sales" element={<Sales />} />
             </Route>
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            </Route>
           </Routes>
           <Toaster position="top-right" />
         </div>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

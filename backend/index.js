@@ -29,12 +29,16 @@ const clubRouter = require("./routes/clubRouter.js");
 const inviteRouter = require("./routes/inviteRouter.js");
 const notificationRouter = require("./routes/notificationRouter.js");
 const saleRouter = require("./routes/saleRouter.js");
+const adminRouter = require("./routes/adminRouter.js");
+
+const { authMiddleware, adminMiddleware } = require("./middleware/authMiddleware.js");
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/club", clubRouter);
 app.use("/api/v1/invite", inviteRouter);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/sale", saleRouter);
+app.use("/api/v1/admin", authMiddleware, adminMiddleware, adminRouter);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
