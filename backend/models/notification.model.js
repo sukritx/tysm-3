@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema({
     sender: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false  // Not required for system notifications like VIP purchase
     },
     receiver: {
         type: mongoose.Schema.Types.ObjectId,
@@ -13,7 +13,12 @@ const notificationSchema = new mongoose.Schema({
     },
     notificationType: {
         type: String,
-        enum: ["receivedFriendRequest", "friendAdded", "incomingChat"]
+        enum: ["receivedFriendRequest", "friendAdded", "incomingChat", "vipPurchase"],
+        required: true
+    },
+    message: {
+        type: String,
+        required: true
     },
     read: {
         type: Boolean,
@@ -26,6 +31,7 @@ const notificationSchema = new mongoose.Schema({
 })
 
 const Notification = mongoose.model("Notification", notificationSchema);
+
 module.exports = {
     Notification
 }

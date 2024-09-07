@@ -238,7 +238,7 @@ const Messages = () => {
                     placeholder="Type a message..."
                     className="flex-grow mr-2"
                   />
-                  <Button onClick={sendMessage}>Send</Button>
+                  <Button onClick={sendMessage}>Send (1 coin)</Button>
                 </div>
               </div>
             )}

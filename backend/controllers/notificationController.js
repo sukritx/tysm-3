@@ -84,6 +84,22 @@ const notificationController = {
       console.error("Error fetching notifications:", error);
       res.status(500).json({ message: "Internal server error", error: error.message });
     }
+  },
+
+  // Send a notification when VIP status is purchased
+  sendVIPPurchaseNotification: async (userId) => {
+    try {
+      const newNotification = new Notification({
+        receiver: userId,
+        notificationType: "vipPurchase",
+        message: "You have successfully purchased VIP status!"
+      });
+
+      await newNotification.save();
+      console.log("VIP purchase notification sent successfully");
+    } catch (error) {
+      console.error("Error sending VIP purchase notification:", error);
+    }
   }
 };
 

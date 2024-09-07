@@ -30,11 +30,13 @@ const Navbar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [coinBalance, setCoinBalance] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (user) {
         try {
+          setIsLoading(true);
           const token = getToken();
           const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {
             headers: { Authorization: `Bearer ${token}` }
@@ -44,7 +46,11 @@ const Navbar = () => {
           setCoinBalance(response.data.user.coinBalance);
         } catch (error) {
           console.error('Error fetching user data:', error);
+        } finally {
+          setIsLoading(false);
         }
+      } else {
+        setIsLoading(false);
       }
     };
 
@@ -134,9 +140,22 @@ const Navbar = () => {
         );
       }
 
-      // Navigate to the sender's profile page
-      if (notification.notificationType === "receivedFriendRequest" || notification.notificationType === "friendAdded") {
-        navigate(`/${notification.sender.username}`);
+      // Navigate based on notification type
+      switch (notification.notificationType) {
+        case "receivedFriendRequest":
+        case "friendAdded":
+          if (notification.sender) {
+            navigate(`/${notification.sender.username}`);
+          }
+          break;
+        case "vipPurchase":
+          // Navigate to the user's profile or a VIP status page
+          navigate(`/${username}`);
+          break;
+        // Add more cases as needed for other notification types
+        default:
+          // Default action or no action
+          break;
       }
 
       // Close the notifications dropdown
@@ -151,6 +170,10 @@ const Navbar = () => {
   const goToSalesPage = () => {
     navigate('/sales');
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>; // Or a more sophisticated loading indicator
+  }
 
   return (
     <header className="flex h-20 w-full shrink-0 items-center px-4 md:px-6 bg-gray-900 relative z-10">
@@ -227,9 +250,14 @@ const Navbar = () => {
                         )}
                         onClick={() => handleNotificationClick(notification)}
                       >
-                        <p>{notification.notificationType === "receivedFriendRequest" 
-                            ? `${notification.sender.username} sent you a friend request` 
-                            : `${notification.sender.username} accepted your friend request`}
+                        <p>
+                          {notification.notificationType === "receivedFriendRequest" 
+                            ? `${notification.sender?.username || 'Someone'} sent you a friend request`
+                            : notification.notificationType === "friendAdded"
+                            ? `${notification.sender?.username || 'Someone'} accepted your friend request`
+                            : notification.notificationType === "vipPurchase"
+                            ? "You have successfully purchased VIP status!"
+                            : notification.message || "New notification"}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(notification.createdAt).toLocaleString()}
@@ -305,7 +333,7 @@ const Navbar = () => {
                   <img src={avatar} alt={username} className="h-full w-full object-cover" />
                 ) : (
                   <AvatarFallback className="bg-gray-700 text-gray-100">
-                    {username.charAt(0).toUpperCase() || 'U'}
+                    {username ? username.charAt(0).toUpperCase() : 'U'}
                   </AvatarFallback>
                 )}
               </Avatar>
@@ -313,9 +341,11 @@ const Navbar = () => {
             <DropdownMenuContent className="bg-gray-800 text-gray-100">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-gray-700" />
-              <DropdownMenuItem className="hover:bg-gray-700">
-                <Link to={`/${username}`}>Profile</Link>
-              </DropdownMenuItem>
+              {username && (
+                <DropdownMenuItem className="hover:bg-gray-700">
+                  <Link to={`/${username}`}>Profile</Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem className="hover:bg-gray-700">
                 <Link to="/settings">Settings</Link>
               </DropdownMenuItem>

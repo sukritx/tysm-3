@@ -68,9 +68,11 @@ const buyVIP = async (req, res) => {
         });
 
     } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
         console.error("Error in buyVIP:", error);
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
+        session.endSession();
         res.status(500).json({ message: "Internal server error" });
     }
 }
