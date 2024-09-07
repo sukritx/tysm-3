@@ -25,15 +25,28 @@ const Signup = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevData => ({
-      ...prevData,
-      [name]: value
-    }));
+    if (name === 'username') {
+      // Only allow English letters, numbers, and underscores
+      const sanitizedValue = value.replace(/[^a-zA-Z0-9_]/g, '');
+      setFormData(prevData => ({
+        ...prevData,
+        [name]: sanitizedValue
+      }));
+    } else {
+      setFormData(prevData => ({
+        ...prevData,
+        [name]: value
+      }));
+    }
   };
 
   const validateStep1 = () => {
     if (formData.username.length < 3) {
       setError('Username must be at least 3 characters long');
+      return false;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+      setError('Username can only contain English letters, numbers, and underscores');
       return false;
     }
     if (formData.password.length < 6) {
@@ -97,9 +110,11 @@ const Signup = () => {
           name="username"
           value={formData.username}
           onChange={handleChange}
-          placeholder="Choose a username"
+          placeholder="Choose a username (English letters, numbers, underscores only)"
           required
           className="bg-gray-700 text-white border-gray-600"
+          pattern="^[a-zA-Z0-9_]+$"
+          title="Username can only contain English letters, numbers, and underscores"
         />
       </div>
       <div className="space-y-2">
