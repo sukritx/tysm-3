@@ -1,33 +1,17 @@
-import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, Crown } from 'lucide-react';
+import { Coins, Crown, Plus } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const Sales = () => {
   const { user, getToken, updateUser } = useAuth();
 
-  const buyCoins = async (amount) => {
-    try {
-      const token = getToken();
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/buy-coins`, 
-        { amount },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      updateUser(response.data.user);
-      toast.success(`Successfully purchased ${amount} coin${amount > 1 ? 's' : ''}!`);
-    } catch (error) {
-      console.error('Error buying coins:', error);
-      toast.error(error.response?.data?.message || 'Failed to purchase coins');
-    }
-  };
-
   const buyVIP = async () => {
     try {
       const token = getToken();
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/buy-vip`, 
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/sale/buy-vip`, 
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -37,6 +21,11 @@ const Sales = () => {
       console.error('Error buying VIP:', error);
       toast.error(error.response?.data?.message || 'Failed to purchase VIP status');
     }
+  };
+
+  const addLine = () => {
+    window.open('https://lin.ee/5Xyg8Yl', '_blank');
+    toast.success('Redirecting to add LINE friend...');
   };
 
   return (
@@ -52,17 +41,17 @@ const Sales = () => {
           </CardHeader>
           <CardContent>
             <p className="text-gray-300 mb-4">Your current balance: {user?.coinBalance || 0} coins</p>
-            <div className="space-y-2">
-              <Button onClick={() => buyCoins(10)} className="w-full bg-[#00BAFA] hover:bg-[#0095c8]">
-                Buy 10 Coins (10฿)
-              </Button>
-              <Button onClick={() => buyCoins(50)} className="w-full bg-[#00BAFA] hover:bg-[#0095c8]">
-                Buy 50 Coins (50฿)
-              </Button>
-              <Button onClick={() => buyCoins(100)} className="w-full bg-[#00BAFA] hover:bg-[#0095c8]">
-                Buy 100 Coins (100฿)
-              </Button>
+            <div className="space-y-2 text-gray-300">
+              <p>10 Coins - 10฿</p>
+              <p>50 Coins - 50฿</p>
+              <p>100 Coins - 100฿</p>
             </div>
+            <Button 
+              onClick={addLine} 
+              className="w-full mt-4 bg-green-500 hover:bg-green-600 flex items-center justify-center"
+            >
+              <Plus className="mr-2" /> แอดไลน์เติมเหรียญ
+            </Button>
           </CardContent>
         </Card>
 

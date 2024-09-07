@@ -28,11 +28,13 @@ const messageRouter = require("./routes/messageRouter.js");
 const clubRouter = require("./routes/clubRouter.js");
 const inviteRouter = require("./routes/inviteRouter.js");
 const notificationRouter = require("./routes/notificationRouter.js");
+const saleRouter = require("./routes/saleRouter.js");
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/club", clubRouter);
 app.use("/api/v1/invite", inviteRouter);
 app.use("/api/v1/notification", notificationRouter);
+app.use("/api/v1/sale", saleRouter);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
