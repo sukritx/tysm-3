@@ -5,7 +5,7 @@ const zod = require("zod");
 require('dotenv').config();
 
 const signupBody = zod.object({
-    username: zod.string().min(3).max(30),
+    username: zod.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
     password: zod.string().min(6),
     confirmPassword: zod.string(),
     phonenumber: zod.string().max(10),
