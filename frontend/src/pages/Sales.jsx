@@ -67,7 +67,7 @@ const Sales = () => {
             <p className="text-gray-300 mb-4">Your current balance: {user?.coinBalance || 0} coins</p>
             <Button 
               onClick={buyVIP} 
-              className="w-full bg-[#00BAFA] hover:bg-[#0095c8]"
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
               disabled={user?.coinBalance < 99}
             >
               Buy VIP Status (99 coins)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Avatar } from "../components/ui/avatar";
@@ -131,16 +131,38 @@ const ProfilePage = () => {
   const renderWhoViewed = () => {
     if (!profileData.whoView || profileData.whoView.length === 0) return null;
     return (
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-2">Recent Profile Viewers</h2>
-        <ul className="space-y-2">
-          {profileData.whoView.map((view, index) => (
-            <li key={index} className="text-sm">
-              {view.username} - {new Date(view.viewDate).toLocaleDateString()}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <Card className="mt-6 border-2 border-yellow-500">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Recent Profile Viewers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2">
+            {profileData.whoView.map((view, index) => (
+              <li key={index} className="text-sm">
+                {view.username} - {new Date(view.viewDate).toLocaleDateString()}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderUnlockWhoViewed = () => {
+    return (
+      <Card className="mt-6 border-2 border-yellow-500">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Who Viewed Your Profile</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-400 mb-2">Unlock this feature with VIP status!</p>
+          <Link to="/sales">
+            <Button variant="outline" className="w-full">
+              Unlock Who Viewed
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -148,11 +170,11 @@ const ProfilePage = () => {
     if (!profileData.todaysClubs || profileData.todaysClubs.length === 0) return null;
     return (
       <div className="mt-4 text-sm">
-        <span className="font-medium">Going to:</span> 
+        <span className="font-medium text-yellow-500">Going to:</span> 
         {profileData.todaysClubs.map((club, index) => (
-          <span key={club._id}>
-            {club.clubName}
-            {index < profileData.todaysClubs.length - 1 ? ', ' : ''}
+          <span key={club._id} className="text-yellow-500">
+            {' '}{club.clubName}
+            {index < profileData.todaysClubs.length - 1 ? ',' : ''}
           </span>
         ))}
       </div>
@@ -164,6 +186,7 @@ const ProfilePage = () => {
   if (!profileData) return <div className="flex justify-center items-center h-screen">Profile not found</div>;
 
   const isOwnProfile = auth.user && auth.user.username === username;
+  const isVip = auth.user && auth.user.vipLevel > 0; // Assuming vipLevel is available in user object
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
@@ -294,7 +317,9 @@ const ProfilePage = () => {
             )}
           </div>
 
-          {isOwnProfile && profileData.whoView && renderWhoViewed()}
+          {isOwnProfile && (
+            isVip ? renderWhoViewed() : renderUnlockWhoViewed()
+          )}
           {!isOwnProfile && renderTodaysClubs()}
         </CardContent>
       </Card>
