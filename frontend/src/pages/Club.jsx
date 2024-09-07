@@ -68,13 +68,20 @@ const Club = () => {
   const handleGoingToday = async () => {
     try {
       const token = await getToken();
+      console.log('Token:', token);
       const config = {
         headers: { Authorization: `Bearer ${token}` }
       };
 
+      console.log('Current user ID:', user.id);
+      console.log('Is user going (before request):', isGoingToday);
+      console.log('Club data before request:', clubData);
+
       if (isGoingToday) {
         // Undo going to club
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/club/undo-go/${id}`, {}, config);
+        console.log(`Attempting to undo go for club ${id}`);
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/club/undo-go/${id}`, {}, config);
+        console.log('Undo go response:', response.data);
         toast.success("คุณได้ยกเลิกการไปวันนี้แล้ว");
         setIsGoingToday(false);
         setClubData(prevData => ({
@@ -93,12 +100,15 @@ const Club = () => {
           peopleGoing: [...prevData.peopleGoing, { userId: user.id, username: user.username, isFriend: false }]
         }));
       }
+
+      console.log('Is user going (after request):', !isGoingToday);
+      console.log('Club data after request:', clubData);
     } catch (error) {
       console.error('Error updating going status:', error);
+      console.error('Error response:', error.response?.data);
       toast.error(error.response?.data?.message || 'Failed to update status');
-      // Revert the local state
-      setIsGoingToday(prevState => !prevState);
-      fetchClubData(); // Re-fetch data to ensure consistency
+      await fetchClubData();
+      console.log('Club data after re-fetch:', clubData);
     }
   };
 
