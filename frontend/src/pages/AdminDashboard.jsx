@@ -3,10 +3,13 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Button } from "@/components/ui/button";
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
     const [dashboardData, setDashboardData] = useState(null);
     const { getToken } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         let isMounted = true;
@@ -30,6 +33,10 @@ const AdminDashboard = () => {
           isMounted = false;
         };
       }, [getToken]);
+
+    const handleAddCoinClick = () => {
+        navigate('/admin/add-coin');
+    };
 
     if (!dashboardData) {
         return <div>Loading...</div>;
@@ -77,6 +84,11 @@ const AdminDashboard = () => {
                     </div>
                 </CardContent>
             </Card>
+            <div className="mt-8">
+                <Button onClick={handleAddCoinClick} className="bg-[#00BAFA] hover:bg-[#0095c8]">
+                    Add Coin to User
+                </Button>
+            </div>
         </div>
     );
 };

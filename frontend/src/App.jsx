@@ -16,6 +16,7 @@ import Messages from './pages/Messages';
 import { Toaster } from 'react-hot-toast';
 import Sales from './pages/Sales';
 import AdminDashboard from './pages/AdminDashboard';
+import AddCoin from './pages/AddCoin';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
             </Route>
             <Route element={<AdminRoute />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/add-coin" element={<AddCoin />} />
             </Route>
           </Routes>
           <Toaster position="top-right" />

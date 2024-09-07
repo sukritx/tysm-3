@@ -1,4 +1,4 @@
-const { Account } = require("../models/user.model");
+const { Account, User } = require("../models/user.model");
 const moment = require("moment");
 
 const getDashboardData = async (req, res) => {
@@ -74,6 +74,44 @@ const getDashboardData = async (req, res) => {
     }
 };
 
+const addCoinsToUser = async (req, res) => {
+    try {
+        const { username, amount } = req.body;
+
+        if (!username || !amount || isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ message: "Invalid input" });
+        }
+
+        const user = await User.findOne({ username: username.toLowerCase() });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const account = await Account.findOne({ userId: user._id });
+        if (!account) {
+            return res.status(404).json({ message: "Account not found" });
+        }
+
+        account.coin.balance += Number(amount);
+        account.coin.transactions.push({
+            amount: Number(amount),
+            type: 'deposit',
+            reason: 'Admin added coins'
+        });
+
+        await account.save();
+
+        res.status(200).json({
+            message: "Coins added successfully",
+            newBalance: account.coin.balance
+        });
+    } catch (error) {
+        console.error("Error in addCoinsToUser:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 module.exports = {
-    getDashboardData
+    getDashboardData,
+    addCoinsToUser
 };
