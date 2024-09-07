@@ -1,7 +1,7 @@
-const { User } = require("../models/user.model");
-const { Account } = require("../models/user.model");
+const { User, Account } = require("../models/user.model");
 const { School } = require("../models/school.model")
 const { notificationController } = require('../controllers/notificationController');
+const { Club } = require('../models/club.model');
 const mongoose = require("mongoose");
 const zod = require("zod");
 require('dotenv').config()
@@ -21,7 +21,7 @@ const getUserMe = async (req, res) => {
       }
   
       const account = await Account.findOne({ userId: user._id })
-        .select('biography school faculty whoView birthday interest instagram avatar coin')
+        .select('biography school faculty whoView birthday interest instagram avatar coin vip')
         .populate('school', 'schoolName schoolType');
   
       const userInfo = {
@@ -29,7 +29,8 @@ const getUserMe = async (req, res) => {
         ...(account ? account.toObject() : {}),
         uniqueViewers: account ? account.whoView.length : 0,
         id: user._id,
-        coinBalance: account ? account.coin.balance : 0
+        coinBalance: account ? account.coin.balance : 0,
+        vipLevel: account && account.vip ? account.vip.find(v => v.vipExpire > new Date())?.vipLevel || 0 : 0,
       };
 
       if (userInfo.whoView) {
@@ -270,7 +271,7 @@ const getUser = async (req, res) => {
 const profileView = async (req, res) => {
     try {
         const username = req.params.username.toLowerCase();
-        const viewerId = req.userId; // set by your authMiddleware
+        const viewerId = req.userId;
 
         const user = await User.findOne({ username }).select('_id createdAt');
 
@@ -279,38 +280,40 @@ const profileView = async (req, res) => {
         }
 
         const account = await Account.findOne({ userId: user._id })
-            .select('biography school faculty whoView birthday interest instagram avatar')
-            .populate('school', 'schoolName schoolType');
+            .select('biography school faculty whoView birthday interest instagram avatar vip')
+            .populate('school', 'schoolName schoolType')
+            .populate({
+                path: 'whoView.userId',
+                select: 'username'
+            });
 
         if (!account) {
             return res.status(404).json({ message: "Account not found" });
         }
 
-        const { biography, school, faculty, whoView, birthday, interest, instagram, avatar } = account;
+        const { biography, school, faculty, whoView, birthday, interest, instagram, avatar, vip } = account;
 
-        // If the viewer is not the profile owner, update the whoView array
-        if (viewerId !== user._id.toString()) {
-            const viewerAccount = await Account.findOne({ userId: viewerId });
-            const isVip1 = viewerAccount && viewerAccount.vip && viewerAccount.vip.some(vip => vip.vipLevel === 1 && vip.vipExpire > new Date());
+        const viewerAccount = await Account.findOne({ userId: viewerId });
+        const isVip = viewerAccount && viewerAccount.vip.some(vip => vip.vipLevel >= 1 && vip.vipExpire > new Date());
 
-            if (!isVip1) {
-                const alreadyViewed = whoView.some(view => view.userId.toString() === viewerId);
-                if (!alreadyViewed) {
-                    account.whoView.push({ userId: viewerId, viewDate: new Date() });
-                } else {
-                    const viewIndex = whoView.findIndex(view => view.userId.toString() === viewerId);
-                    account.whoView[viewIndex].viewDate = new Date();
-                }
-                await account.save();
+        const isOwnProfile = viewerId === user._id.toString();
+
+        // Update whoView only if it's not the user's own profile
+        if (!isOwnProfile) {
+            const viewIndex = whoView.findIndex(view => view.userId._id.toString() === viewerId);
+            if (viewIndex === -1) {
+                account.whoView.push({ userId: viewerId, viewDate: new Date() });
+            } else {
+                account.whoView[viewIndex].viewDate = new Date();
             }
+            await account.save();
         }
 
         // Count the number of unique viewers
-        const uniqueViewers = new Set(whoView.map(view => view.userId.toString())).size;
+        const uniqueViewers = new Set(whoView.map(view => view.userId._id.toString())).size;
 
         // Determine friend status
         let friendStatus = 'not_friends';
-        const viewerAccount = await Account.findOne({ userId: viewerId });
         if (viewerAccount) {
             if (viewerAccount.friendsList.some(friend => friend.friendId.toString() === user._id.toString())) {
                 friendStatus = 'friends';
@@ -320,6 +323,9 @@ const profileView = async (req, res) => {
                 friendStatus = 'pending_received';
             }
         }
+
+        // Get the clubs the user is going to today
+        const todaysClubs = await Club.find({ 'goingToday.userId': user._id }).select('_id clubName');
 
         // Prepare the response data
         const responseData = {
@@ -334,19 +340,24 @@ const profileView = async (req, res) => {
             instagram,
             joinDate: user.createdAt,
             friendStatus,
-            avatar
+            avatar,
+            whoView: isOwnProfile && isVip ? whoView.map(view => ({
+                username: view.userId.username,
+                viewDate: view.viewDate
+            })) : undefined,
+            todaysClubs: isVip && !isOwnProfile ? todaysClubs.map(club => ({
+                _id: club._id,
+                clubName: club.clubName
+            })) : undefined,
         };
 
         return res.json({ 
-            data: {
-                ...responseData,
-                friendStatus
-            }
+            data: responseData
         });
 
     } catch (err) {
         console.error("Error in profileView:", err);
-        return res.status(500).json({ error: "Internal server error" });
+        return res.status(500).json({ error: "Internal server error", details: err.message });
     }
 };
 

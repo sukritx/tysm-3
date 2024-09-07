@@ -30,6 +30,7 @@ const ProfilePage = () => {
         if (!token) {
           throw new Error('No authentication token found');
         }
+        console.log('Fetching profile data for:', username);
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/${username}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -40,6 +41,7 @@ const ProfilePage = () => {
         setLoading(false);
       } catch (err) {
         console.error('Error fetching profile data:', err);
+        console.error('Error details:', err.response?.data);
         setError('Failed to load profile data. Please try again.');
         setLoading(false);
       }
@@ -124,6 +126,37 @@ const ProfilePage = () => {
       console.error('Error sending message:', err);
       setError('Failed to send message. Please try again.');
     }
+  };
+
+  const renderWhoViewed = () => {
+    if (!profileData.whoView || profileData.whoView.length === 0) return null;
+    return (
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold mb-2">Who Viewed Your Profile</h2>
+        <ul className="space-y-2">
+          {profileData.whoView.map((view, index) => (
+            <li key={index} className="text-sm">
+              {view.username} - {new Date(view.viewDate).toLocaleDateString()}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
+  const renderTodaysClubs = () => {
+    if (!profileData.todaysClubs || profileData.todaysClubs.length === 0) return null;
+    return (
+      <div className="mt-4 text-sm">
+        <span className="font-medium">Going to:</span> 
+        {profileData.todaysClubs.map((club, index) => (
+          <span key={club._id}>
+            {club.clubName}
+            {index < profileData.todaysClubs.length - 1 ? ', ' : ''}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -260,6 +293,9 @@ const ProfilePage = () => {
               </>
             )}
           </div>
+
+          {isOwnProfile && profileData.whoView && renderWhoViewed()}
+          {!isOwnProfile && renderTodaysClubs()}
         </CardContent>
       </Card>
     </div>
