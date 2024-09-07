@@ -4,32 +4,42 @@ const notificationController = {
   // Send a notification when a friend request is sent
   sendFriendRequestNotification: async (senderId, receiverId) => {
     try {
+      console.log(`Attempting to create friend request notification: sender ${senderId}, receiver ${receiverId}`);
+      
       const newNotification = new Notification({
         sender: senderId,
         receiver: receiverId,
-        notificationType: "receivedFriendRequest"
+        notificationType: "receivedFriendRequest",
+        message: "You have received a new friend request!"
       });
 
-      await newNotification.save();
-      console.log("Friend request notification sent successfully");
+      const savedNotification = await newNotification.save();
+      console.log("Friend request notification created successfully:", savedNotification);
+      return savedNotification;
     } catch (error) {
-      console.error("Error sending friend request notification:", error);
+      console.error("Error creating friend request notification:", error);
+      throw error; // Re-throw the error so it can be caught in the calling function
     }
   },
 
   // Send a notification when a friend request is accepted
   sendFriendAddedNotification: async (senderId, receiverId) => {
     try {
+      console.log(`Attempting to create friend added notification: sender ${senderId}, receiver ${receiverId}`);
+      
       const newNotification = new Notification({
         sender: senderId,
         receiver: receiverId,
-        notificationType: "friendAdded"
+        notificationType: "friendAdded",
+        message: "Your friend request has been accepted!"
       });
 
-      await newNotification.save();
-      console.log("Friend added notification sent successfully");
+      const savedNotification = await newNotification.save();
+      console.log("Friend added notification created successfully:", savedNotification);
+      return savedNotification;
     } catch (error) {
-      console.error("Error sending friend added notification:", error);
+      console.error("Error creating friend added notification:", error);
+      throw error; // Re-throw the error so it can be caught in the calling function
     }
   },
 
