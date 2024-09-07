@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ArrowLeft, Check } from 'lucide-react';
@@ -135,22 +134,20 @@ const Messages = () => {
   };
 
   const renderMessage = (msg) => {
-    const isFromSelectedUser = msg.sender === selectedUser;
+    const isFromCurrentUser = msg.isFromCurrentUser;
     console.log('Rendering message:', msg);
-    console.log('Selected user ID:', selectedUser);
-    console.log('Message sender ID:', msg.sender);
-    console.log('Is from selected user?', isFromSelectedUser);
+    console.log('Is from current user?', isFromCurrentUser);
     console.log('Is message read?', msg.read);
 
     return (
-      <div key={msg._id} className={`mb-4 flex ${isFromSelectedUser ? 'justify-start' : 'justify-end'}`}>
-        <div className={`max-w-[70%] ${isFromSelectedUser ? 'bg-gray-200' : 'bg-blue-500 text-white'} rounded-lg p-3 relative`}>
+      <div key={msg._id} className={`mb-4 flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}>
+        <div className={`max-w-[70%] ${isFromCurrentUser ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-lg p-3 relative`}>
           <p>{msg.message}</p>
           <div className="flex items-center justify-between mt-1">
             <p className="text-xs text-gray-400">
               {formatMessageTime(msg.createdAt)}
             </p>
-            {msg.read && (
+            {msg.read && isFromCurrentUser && (
               <Check className="w-4 h-4 text-green-500 ml-2" />
             )}
           </div>
@@ -187,12 +184,8 @@ const Messages = () => {
                       setSelectedUser(conv.userId);
                     }}
                   >
-                    <Avatar className="h-10 w-10 mr-3">
-                      <AvatarImage src={conv.avatar} alt={conv.username} />
-                      <AvatarFallback>{conv.username.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
                     <div className="flex-grow">
-                      <p className="font-semibold">{conv.username}</p>
+                      <p className="font-semibold">Anonymous User</p>
                       <p className="text-sm text-gray-500">{conv.lastMessage}</p>
                     </div>
                     {conv.unreadCount > 0 && (
@@ -219,7 +212,7 @@ const Messages = () => {
                 </Button>
                 <CardTitle>
                   {selectedUser 
-                    ? `Chat with ${conversations.find(c => c.userId === selectedUser)?.username}` 
+                    ? `Chat with Anonymous User` 
                     : 'Select a conversation'}
                 </CardTitle>
               </div>

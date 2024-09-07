@@ -93,8 +93,7 @@ const getMessageSameUser = async (req, res) => {
 
         const formattedMessages = messages.map(message => ({
             _id: message._id,
-            sender: message.sender.toString(), // Ensure sender is a string
-            receiver: message.receiver.toString(), // Ensure receiver is a string
+            isFromCurrentUser: message.sender.toString() === userId,
             message: message.message,
             createdAt: message.createdAt,
             read: message.read
