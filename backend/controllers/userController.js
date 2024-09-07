@@ -327,6 +327,27 @@ const profileView = async (req, res) => {
         // Get the clubs the user is going to today
         const todaysClubs = await Club.find({ 'goingToday.userId': user._id }).select('_id clubName');
 
+        // Prepare the whoView data
+        let whoViewData;
+        if (isOwnProfile && isVip) {
+            // Sort whoView by date, most recent first
+            const sortedWhoView = account.whoView.sort((a, b) => b.viewDate - a.viewDate);
+            
+            // Get unique viewers (latest view for each user)
+            const uniqueViewers = new Map();
+            sortedWhoView.forEach(view => {
+                if (!uniqueViewers.has(view.userId._id.toString())) {
+                    uniqueViewers.set(view.userId._id.toString(), {
+                        username: view.userId.username,
+                        viewDate: view.viewDate
+                    });
+                }
+            });
+
+            // Take the first 5 unique viewers
+            whoViewData = Array.from(uniqueViewers.values()).slice(0, 5);
+        }
+
         // Prepare the response data
         const responseData = {
             _id: user._id,
@@ -341,10 +362,7 @@ const profileView = async (req, res) => {
             joinDate: user.createdAt,
             friendStatus,
             avatar,
-            whoView: isOwnProfile && isVip ? whoView.map(view => ({
-                username: view.userId.username,
-                viewDate: view.viewDate
-            })) : undefined,
+            whoView: whoViewData,
             todaysClubs: isVip && !isOwnProfile ? todaysClubs.map(club => ({
                 _id: club._id,
                 clubName: club.clubName

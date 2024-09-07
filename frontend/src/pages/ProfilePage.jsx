@@ -132,7 +132,7 @@ const ProfilePage = () => {
     if (!profileData.whoView || profileData.whoView.length === 0) return null;
     return (
       <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-2">Who Viewed Your Profile</h2>
+        <h2 className="text-lg font-semibold mb-2">Recent Profile Viewers</h2>
         <ul className="space-y-2">
           {profileData.whoView.map((view, index) => (
             <li key={index} className="text-sm">
