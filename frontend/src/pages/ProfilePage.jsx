@@ -5,9 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { Avatar } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { InstagramIcon } from 'lucide-react';
+import { InstagramIcon, Star, Clock, Users } from 'lucide-react';
 import { Textarea } from "../components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
+import { Badge } from "../components/ui/badge";
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -30,18 +31,14 @@ const ProfilePage = () => {
         if (!token) {
           throw new Error('No authentication token found');
         }
-        console.log('Fetching profile data for:', username);
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/${username}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log("Profile data received:", response.data);
         setProfileData(response.data.data);
         setFriendStatus(response.data.data.friendStatus);
-        console.log("Friend status set to:", response.data.data.friendStatus);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching profile data:', err);
-        console.error('Error details:', err.response?.data);
         setError('Failed to load profile data. Please try again.');
         setLoading(false);
       }
@@ -100,11 +97,6 @@ const ProfilePage = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date) ? date.toLocaleDateString() : 'Invalid Date';
-  };
-
   const handleSendMessage = async () => {
     try {
       const token = auth.getToken();
@@ -128,12 +120,47 @@ const ProfilePage = () => {
     }
   };
 
-  const renderWhoViewed = () => {
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date instanceof Date && !isNaN(date) ? date.toLocaleDateString() : 'Invalid Date';
+  };
+
+  const renderVipStatus = () => {
+    if (!profileData.vipStatus || !profileData.vipStatus.isVip) return null;
+    
+    return (
+      <Card className="mt-6 bg-gradient-to-r from-yellow-400 to-yellow-200 text-black">
+        <CardHeader>
+          <CardTitle className="flex items-center text-xl font-bold">
+            <Star className="mr-2" /> VIP Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="font-semibold">Level {profileData.vipStatus.vipLevel} VIP</p>
+          {isOwnProfile && profileData.vipStatus.vipExpire && (
+            <p className="text-sm mt-2">
+              <Clock className="inline mr-1" />
+              Expires on: {new Date(profileData.vipStatus.vipExpire).toLocaleDateString()}
+            </p>
+          )}
+          {!isOwnProfile && (
+            <Button className="mt-4 bg-black text-yellow-400 hover:bg-gray-800">
+              Get VIP Now
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderProfileViewers = () => {
     if (!profileData.whoView || profileData.whoView.length === 0) return null;
     return (
       <Card className="mt-6 border-2 border-yellow-500">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Recent Profile Viewers</CardTitle>
+          <CardTitle className="text-lg font-semibold flex items-center">
+            <Users className="mr-2" /> Recent Profile Viewers
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2">
@@ -151,7 +178,7 @@ const ProfilePage = () => {
     );
   };
 
-  const renderUnlockWhoViewed = () => {
+  const renderUnlockProfileViewers = () => {
     return (
       <Card className="mt-6 border-2 border-yellow-500">
         <CardHeader>
@@ -189,11 +216,11 @@ const ProfilePage = () => {
   if (!profileData) return <div className="flex justify-center items-center h-screen">Profile not found</div>;
 
   const isOwnProfile = auth.user && auth.user.username === username;
-  const isVip = auth.user && auth.user.vipLevel > 0; // Assuming vipLevel is available in user object
+  const isVip = profileData.vipStatus && profileData.vipStatus.isVip;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-0">
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20">
@@ -203,7 +230,6 @@ const ProfilePage = () => {
                   alt={username} 
                   className="h-full w-full object-cover" 
                   onError={(e) => {
-                    console.error("Error loading avatar:", e);
                     e.target.onerror = null; 
                     e.target.src = "/placeholder-user.jpg";
                   }}
@@ -214,9 +240,18 @@ const ProfilePage = () => {
                 </span>
               )}
             </Avatar>
-            <div>
-              <CardTitle className="text-2xl font-bold">{profileData.firstName} {profileData.lastName}</CardTitle>
-              <p className="text-sm text-muted-foreground">@{username}</p>
+            <div className="flex flex-col">
+              <CardTitle className="text-2xl font-bold">
+                {profileData.firstName} {profileData.lastName}
+              </CardTitle>
+              <div className="flex items-center mt-1">
+                <p className="text-sm text-muted-foreground mr-2">@{username}</p>
+                {isVip && (
+                  <Badge variant="secondary" className="bg-yellow-400 text-black text-xs">
+                    <Star className="mr-1 h-3 w-3" /> VIP
+                  </Badge>
+                )}
+              </div>
               {profileData.instagram && (
                 <a href={`https://instagram.com/${profileData.instagram}`} target="_blank" rel="noopener noreferrer" className="flex items-center mt-1 text-sm text-blue-500 hover:underline">
                   <InstagramIcon size={16} className="mr-1" />
@@ -226,8 +261,8 @@ const ProfilePage = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="mt-4 space-y-4">
+        <CardContent className="mt-4">
+          <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
               Joined {formatDate(profileData.joinDate)}
             </div>
@@ -263,7 +298,7 @@ const ProfilePage = () => {
             </div>
           )}
           
-          <div className="mt-6">
+          <div className="mt-6 flex space-x-2">
             {isOwnProfile ? (
               <Button variant="outline" onClick={handleEditProfile}>
                 Edit Profile
@@ -290,12 +325,9 @@ const ProfilePage = () => {
                     Unfriend
                   </Button>
                 )}
-                {friendStatus === undefined && (
-                  <p>Friend status is undefined</p>
-                )}
                 <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="ml-2">
+                    <Button variant="outline">
                       Send Message
                     </Button>
                   </DialogTrigger>
@@ -320,10 +352,9 @@ const ProfilePage = () => {
             )}
           </div>
 
-          {isOwnProfile && (
-            isVip ? renderWhoViewed() : renderUnlockWhoViewed()
-          )}
-          {!isOwnProfile && renderTodaysClubs()}
+          {isVip && renderVipStatus()}
+          {isOwnProfile && isVip && renderProfileViewers()}
+          {!isOwnProfile && isVip && renderTodaysClubs()}
         </CardContent>
       </Card>
     </div>

@@ -348,10 +348,20 @@ const profileView = async (req, res) => {
             whoViewData = Array.from(uniqueViewers.values()).slice(0, 5);
         }
 
+        // Get VIP status and expiration
+        const currentVip = account.vip.find(v => v.vipExpire > new Date());
+        const vipStatus = {
+            isVip: !!currentVip,
+            vipLevel: currentVip ? currentVip.vipLevel : 0,
+            vipExpire: isOwnProfile && currentVip ? currentVip.vipExpire : undefined,
+        };
+
         // Prepare the response data
         const responseData = {
             _id: user._id,
             username,
+            firstName: user.firstName,
+            lastName: user.lastName,
             biography,
             school: school ? { name: school.schoolName, type: school.schoolType } : null,
             faculty,
@@ -363,10 +373,11 @@ const profileView = async (req, res) => {
             friendStatus,
             avatar,
             whoView: whoViewData,
-            todaysClubs: isVip && !isOwnProfile ? todaysClubs.map(club => ({
+            todaysClubs: vipStatus.isVip && !isOwnProfile ? todaysClubs.map(club => ({
                 _id: club._id,
                 clubName: club.clubName
             })) : undefined,
+            vipStatus,
         };
 
         return res.json({ 
