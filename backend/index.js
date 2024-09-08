@@ -40,8 +40,12 @@ app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/sale", saleRouter);
 app.use("/api/v1/admin", authMiddleware, adminMiddleware, adminRouter);
 
+// Scheduled task
+const { scheduleClubReset } = require('./scheduledTasks');
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
+    scheduleClubReset(); // Schedule the daily reset task
 });
