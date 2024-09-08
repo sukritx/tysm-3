@@ -1,7 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, Crown, Plus } from 'lucide-react';
+import { Coins, Crown, Plus, Eye, Ghost, Users, Badge } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
@@ -64,7 +64,12 @@ const Sales = () => {
           </CardHeader>
           <CardContent>
             <p className="text-gray-300 mb-4">VIP Status: 99 coins/month</p>
-            <p className="text-gray-300 mb-4">Your current balance: {user?.coinBalance || 0} coins</p>
+            <ul className="text-gray-300 mb-4 space-y-2">
+              <li className="flex items-center"><Eye className="mr-2" /> See who viewed your profile</li>
+              <li className="flex items-center"><Ghost className="mr-2" /> Browse profiles invisibly</li>
+              <li className="flex items-center"><Users className="mr-2" /> See who's going to which club</li>
+              <li className="flex items-center"><Badge className="mr-2" /> Exclusive VIP badge</li>
+            </ul>
             <Button 
               onClick={buyVIP} 
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
