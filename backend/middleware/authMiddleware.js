@@ -32,7 +32,8 @@ const authMiddleware = async (req, res, next) => {
 };
 
 const adminMiddleware = async (req, res, next) => {
-    if (!req.userId || !req.userId.isAdmin) {
+    console.log('User in adminMiddleware:', req.user);
+    if (!req.user || !req.user.isAdmin) {
         return res.status(403).json({ error: "Forbidden: Admin access required" });
     }
     next();
