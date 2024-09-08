@@ -298,8 +298,8 @@ const profileView = async (req, res) => {
 
         const isOwnProfile = viewerId === user._id.toString();
 
-        // Update whoView only if it's not the user's own profile
-        if (!isOwnProfile) {
+        // Update whoView only if it's not the user's own profile and the viewer is not VIP
+        if (!isOwnProfile && !isVip) {
             const viewIndex = whoView.findIndex(view => view.userId._id.toString() === viewerId);
             if (viewIndex === -1) {
                 account.whoView.push({ userId: viewerId, viewDate: new Date() });
