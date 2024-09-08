@@ -39,15 +39,18 @@ const buyVIP = async (req, res) => {
 
         // Add or extend VIP status
         const now = new Date();
-        const vipExpiry = new Date(now.getTime() + vipDuration);
-
         const existingVIP = account.vip.find(v => v.vipLevel === 1);
+        
         if (existingVIP) {
-            existingVIP.vipExpire = new Date(Math.max(existingVIP.vipExpire, vipExpiry));
+            // If VIP already exists, extend the expiration date
+            const currentExpiry = new Date(existingVIP.vipExpire);
+            const newExpiry = new Date(Math.max(currentExpiry, now.getTime()) + vipDuration);
+            existingVIP.vipExpire = newExpiry;
         } else {
+            // If no VIP, add new VIP status
             account.vip.push({
                 vipLevel: 1,
-                vipExpire: vipExpiry
+                vipExpire: new Date(now.getTime() + vipDuration)
             });
         }
 
