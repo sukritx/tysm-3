@@ -139,7 +139,10 @@ const ProfilePage = () => {
           <ul className="space-y-2">
             {profileData.whoView.map((view, index) => (
               <li key={index} className="text-sm">
-                {view.username} - {new Date(view.viewDate).toLocaleDateString()}
+                <Link to={`/${view.username}`} className="text-blue-500 hover:underline">
+                  {view.username}
+                </Link>
+                {' - '}{new Date(view.viewDate).toLocaleDateString()}
               </li>
             ))}
           </ul>
