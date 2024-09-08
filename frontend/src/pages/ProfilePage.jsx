@@ -144,9 +144,11 @@ const ProfilePage = () => {
             </p>
           )}
           {!isOwnProfile && (
-            <Button className="mt-4 bg-black text-yellow-400 hover:bg-gray-800">
-              Get VIP Now
-            </Button>
+            <Link to="/sales">
+              <Button className="mt-4 bg-black text-yellow-400 hover:bg-gray-800">
+                Get VIP Now
+              </Button>
+            </Link>
           )}
         </CardContent>
       </Card>
@@ -199,14 +201,15 @@ const ProfilePage = () => {
   const renderTodaysClubs = () => {
     if (!profileData.todaysClubs || profileData.todaysClubs.length === 0) return null;
     return (
-      <div className="mt-4 text-sm">
-        <span className="font-medium text-yellow-500">Going to:</span> 
-        {profileData.todaysClubs.map((club, index) => (
-          <span key={club._id} className="text-yellow-500">
-            {' '}{club.clubName}
-            {index < profileData.todaysClubs.length - 1 ? ',' : ''}
-          </span>
-        ))}
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold mb-2 text-yellow-500">Today going to</h3>
+        <ul className="list-disc pl-5">
+          {profileData.todaysClubs.map((club) => (
+            <li key={club._id} className="text-sm text-yellow-500">
+              {club.clubName}
+            </li>
+          ))}
+        </ul>
       </div>
     );
   };
@@ -241,11 +244,10 @@ const ProfilePage = () => {
               )}
             </Avatar>
             <div className="flex flex-col">
-              <CardTitle className="text-2xl font-bold">
-                {profileData.firstName} {profileData.lastName}
-              </CardTitle>
-              <div className="flex items-center mt-1">
-                <p className="text-sm text-muted-foreground mr-2">@{username}</p>
+              <div className="flex items-center">
+                <CardTitle className="text-2xl font-bold mr-2">
+                  @{username}
+                </CardTitle>
                 {isVip && (
                   <Badge variant="secondary" className="bg-yellow-400 text-black text-xs">
                     <Star className="mr-1 h-3 w-3" /> VIP
@@ -353,8 +355,8 @@ const ProfilePage = () => {
           </div>
 
           {isVip && renderVipStatus()}
-          {isOwnProfile && isVip && renderProfileViewers()}
-          {!isOwnProfile && isVip && renderTodaysClubs()}
+          {isOwnProfile && (isVip ? renderProfileViewers() : renderUnlockProfileViewers())}
+          {renderTodaysClubs()}
         </CardContent>
       </Card>
     </div>

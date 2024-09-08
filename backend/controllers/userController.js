@@ -273,7 +273,7 @@ const profileView = async (req, res) => {
         const username = req.params.username.toLowerCase();
         const viewerId = req.userId;
 
-        const user = await User.findOne({ username }).select('_id createdAt');
+        const user = await User.findOne({ username }).select('_id createdAt firstName lastName');
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });
@@ -294,12 +294,12 @@ const profileView = async (req, res) => {
         const { biography, school, faculty, whoView, birthday, interest, instagram, avatar, vip } = account;
 
         const viewerAccount = await Account.findOne({ userId: viewerId });
-        const isVip = viewerAccount && viewerAccount.vip.some(vip => vip.vipLevel >= 1 && vip.vipExpire > new Date());
+        const isViewerVip = viewerAccount && viewerAccount.vip.some(vip => vip.vipLevel >= 1 && vip.vipExpire > new Date());
 
         const isOwnProfile = viewerId === user._id.toString();
 
         // Update whoView only if it's not the user's own profile and the viewer is not VIP
-        if (!isOwnProfile && !isVip) {
+        if (!isOwnProfile && !isViewerVip) {
             const viewIndex = whoView.findIndex(view => view.userId._id.toString() === viewerId);
             if (viewIndex === -1) {
                 account.whoView.push({ userId: viewerId, viewDate: new Date() });
@@ -324,12 +324,15 @@ const profileView = async (req, res) => {
             }
         }
 
-        // Get the clubs the user is going to today
-        const todaysClubs = await Club.find({ 'goingToday.userId': user._id }).select('_id clubName');
+        // Get the clubs the user is going to today, but only if the viewer is VIP or it's their own profile
+        let todaysClubs;
+        if (isViewerVip || isOwnProfile) {
+            todaysClubs = await Club.find({ 'goingToday.userId': user._id }).select('_id clubName');
+        }
 
         // Prepare the whoView data
         let whoViewData;
-        if (isOwnProfile && isVip) {
+        if (isOwnProfile && isViewerVip) {
             // Sort whoView by date, most recent first
             const sortedWhoView = account.whoView.sort((a, b) => b.viewDate - a.viewDate);
             
@@ -373,7 +376,7 @@ const profileView = async (req, res) => {
             friendStatus,
             avatar,
             whoView: whoViewData,
-            todaysClubs: vipStatus.isVip && !isOwnProfile ? todaysClubs.map(club => ({
+            todaysClubs: (isViewerVip || isOwnProfile) ? todaysClubs.map(club => ({
                 _id: club._id,
                 clubName: club.clubName
             })) : undefined,
