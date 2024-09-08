@@ -132,11 +132,11 @@ const ProfilePage = () => {
       <Card className="mt-6 bg-gradient-to-r from-yellow-400 to-yellow-200 text-black">
         <CardHeader>
           <CardTitle className="flex items-center text-xl font-bold">
-            <Star className="mr-2" /> VIP Status
+            <Star className="mr-2" /> VIP user
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="font-semibold">Level {profileData.vipStatus.vipLevel} VIP</p>
+          <p className="font-semibold">Exclusive member</p>
           {isOwnProfile && profileData.vipStatus.vipExpire && (
             <p className="text-sm mt-2">
               <Clock className="inline mr-1" />
@@ -146,7 +146,7 @@ const ProfilePage = () => {
           {!isOwnProfile && (
             <Link to="/sales">
               <Button className="mt-4 bg-black text-yellow-400 hover:bg-gray-800">
-                Get VIP Now
+                become VIP
               </Button>
             </Link>
           )}
