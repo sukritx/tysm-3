@@ -187,32 +187,32 @@ const undoGoToClub = async (req, res) => {
         const { clubId } = req.params;
         const userId = req.userId;
 
-        console.log(`Attempting to undo go for club ${clubId} and user ${userId}`);
+        // console.log(`Attempting to undo go for club ${clubId} and user ${userId}`);
 
         if (!mongoose.Types.ObjectId.isValid(clubId)) {
-            console.log('Invalid club ID');
+            // console.log('Invalid club ID');
             return res.status(400).json({ message: "Invalid club ID" });
         }
 
         const club = await Club.findById(clubId);
         if (!club) {
-            console.log('Club not found');
+            // console.log('Club not found');
             return res.status(404).json({ message: "Club not found" });
         }
 
-        console.log('Club found:', JSON.stringify(club, null, 2));
+        // console.log('Club found:', JSON.stringify(club, null, 2));
 
         // Check if the user is in the goingToday array
         const userIndex = club.goingToday.findIndex(person => person.userId.toString() === userId.toString());
-        console.log('User index in goingToday:', userIndex);
-        console.log('goingToday array:', JSON.stringify(club.goingToday, null, 2));
-        console.log('Comparing userId:', userId, 'with type:', typeof userId);
+        // console.log('User index in goingToday:', userIndex);
+        // console.log('goingToday array:', JSON.stringify(club.goingToday, null, 2));
+        // console.log('Comparing userId:', userId, 'with type:', typeof userId);
         club.goingToday.forEach((person, index) => {
-            console.log(`goingToday[${index}].userId:`, person.userId, 'with type:', typeof person.userId);
+            // console.log(`goingToday[${index}].userId:`, person.userId, 'with type:', typeof person.userId);
         });
 
         if (userIndex === -1) {
-            console.log('User not found in goingToday list');
+            // console.log('User not found in goingToday list');
             return res.status(400).json({ message: "You're not in the going today list for this club" });
         }
 
@@ -220,11 +220,11 @@ const undoGoToClub = async (req, res) => {
         club.goingToday.splice(userIndex, 1);
         club.todayCount = Math.max(0, club.todayCount - 1); // Ensure todayCount doesn't go below 0
 
-        console.log('Updated club:', JSON.stringify(club, null, 2));
+        // console.log('Updated club:', JSON.stringify(club, null, 2));
 
         await club.save();
 
-        console.log('Club saved successfully');
+        // console.log('Club saved successfully');
 
         res.status(200).json({
             message: "Successfully removed from club's going today list",

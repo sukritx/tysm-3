@@ -44,9 +44,9 @@ const Club = () => {
       );
       setIsGoingToday(userIsGoing);
 
-      console.log('Current user ID:', user.id);
-      console.log('People going:', response.data.peopleGoing);
-      console.log('Is user going:', userIsGoing);
+      // console.log('Current user ID:', user.id);
+      // console.log('People going:', response.data.peopleGoing);
+      // console.log('Is user going:', userIsGoing);
 
     } catch (error) {
       console.error('Error fetching club data:', error.response || error);
@@ -68,20 +68,20 @@ const Club = () => {
   const handleGoingToday = async () => {
     try {
       const token = await getToken();
-      console.log('Token:', token);
+      // console.log('Token:', token);
       const config = {
         headers: { Authorization: `Bearer ${token}` }
       };
 
-      console.log('Current user ID:', user.id);
-      console.log('Is user going (before request):', isGoingToday);
-      console.log('Club data before request:', clubData);
+      // console.log('Current user ID:', user.id);
+      // console.log('Is user going (before request):', isGoingToday);
+      // console.log('Club data before request:', clubData);
 
       if (isGoingToday) {
         // Undo going to club
-        console.log(`Attempting to undo go for club ${id}`);
+        // console.log(`Attempting to undo go for club ${id}`);
         const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/club/undo-go/${id}`, {}, config);
-        console.log('Undo go response:', response.data);
+        // console.log('Undo go response:', response.data);
         toast.success("คุณได้ยกเลิกการไปวันนี้แล้ว");
         setIsGoingToday(false);
         setClubData(prevData => ({
@@ -101,14 +101,14 @@ const Club = () => {
         }));
       }
 
-      console.log('Is user going (after request):', !isGoingToday);
-      console.log('Club data after request:', clubData);
+      // console.log('Is user going (after request):', !isGoingToday);
+      // console.log('Club data after request:', clubData);
     } catch (error) {
       console.error('Error updating going status:', error);
       console.error('Error response:', error.response?.data);
       toast.error(error.response?.data?.message || 'Failed to update status');
       await fetchClubData();
-      console.log('Club data after re-fetch:', clubData);
+      // console.log('Club data after re-fetch:', clubData);
     }
   };
 

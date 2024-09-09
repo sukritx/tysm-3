@@ -140,7 +140,7 @@ const updateAccount = async (req, res) => {
 
         updatedFields.updatedAt = new Date();
 
-        console.log('Updating account with fields:', updatedFields); // For debugging
+        // console.log('Updating account with fields:', updatedFields); // For debugging
 
         const updatedAccount = await Account.findOneAndUpdate(
             { userId: userId },
@@ -465,24 +465,24 @@ const acceptFriendRequest = async (req, res) => {
         const { friendId } = req.params; // ID of the user whose friend request is being accepted
         const userId = req.userId; // ID of the current user, should be set by authentication middleware
 
-        console.log(`Accepting friend request: user ${userId}, friend ${friendId}`);
+        // console.log(`Accepting friend request: user ${userId}, friend ${friendId}`);
 
         // Find the accounts of both users
         const userAccount = await Account.findOne({ userId });
         const friendAccount = await Account.findOne({ userId: friendId });
 
         if (!userAccount || !friendAccount) {
-            console.log("User or friend account not found");
+            // console.log("User or friend account not found");
             return res.status(404).json({ message: "User not found" });
         }
 
         // Check if the friend request exists in the user's receivedFriendRequest
         const receivedRequestIndex = userAccount.receivedFriendRequest.findIndex(request => request.userId.toString() === friendId);
 
-        console.log(`Received request index: ${receivedRequestIndex}`);
+        // console.log(`Received request index: ${receivedRequestIndex}`);
 
         if (receivedRequestIndex === -1) {
-            console.log("Friend request not found in user's receivedFriendRequest");
+            // console.log("Friend request not found in user's receivedFriendRequest");
             return res.status(400).json({ message: "Friend request not found" });
         }
 
@@ -505,12 +505,12 @@ const acceptFriendRequest = async (req, res) => {
         // Send notification for accepted friend request
         try {
             const notification = await notificationController.sendFriendAddedNotification(userId, friendId);
-            console.log("Friend added notification sent:", notification);
+            // console.log("Friend added notification sent:", notification);
         } catch (notificationError) {
             console.error("Failed to send friend added notification:", notificationError);
         }
 
-        console.log("Friend request accepted successfully");
+        // console.log("Friend request accepted successfully");
         res.status(200).json({ message: "Friend request accepted successfully" });
     } catch (error) {
         console.error("Error accepting friend request:", error);

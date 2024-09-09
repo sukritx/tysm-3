@@ -4,7 +4,7 @@ const notificationController = {
   // Send a notification when a friend request is sent
   sendFriendRequestNotification: async (senderId, receiverId) => {
     try {
-      console.log(`Attempting to create friend request notification: sender ${senderId}, receiver ${receiverId}`);
+      // console.log(`Attempting to create friend request notification: sender ${senderId}, receiver ${receiverId}`);
       
       const newNotification = new Notification({
         sender: senderId,
@@ -14,7 +14,7 @@ const notificationController = {
       });
 
       const savedNotification = await newNotification.save();
-      console.log("Friend request notification created successfully:", savedNotification);
+      // console.log("Friend request notification created successfully:", savedNotification);
       return savedNotification;
     } catch (error) {
       console.error("Error creating friend request notification:", error);
@@ -25,7 +25,7 @@ const notificationController = {
   // Send a notification when a friend request is accepted
   sendFriendAddedNotification: async (senderId, receiverId) => {
     try {
-      console.log(`Attempting to create friend added notification: sender ${senderId}, receiver ${receiverId}`);
+      // console.log(`Attempting to create friend added notification: sender ${senderId}, receiver ${receiverId}`);
       
       const newNotification = new Notification({
         sender: senderId,
@@ -35,7 +35,7 @@ const notificationController = {
       });
 
       const savedNotification = await newNotification.save();
-      console.log("Friend added notification created successfully:", savedNotification);
+      // console.log("Friend added notification created successfully:", savedNotification);
       return savedNotification;
     } catch (error) {
       console.error("Error creating friend added notification:", error);
@@ -106,7 +106,7 @@ const notificationController = {
       });
 
       await newNotification.save();
-      console.log("VIP purchase notification sent successfully");
+      // console.log("VIP purchase notification sent successfully");
     } catch (error) {
       console.error("Error sending VIP purchase notification:", error);
     }

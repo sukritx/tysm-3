@@ -103,7 +103,7 @@ const respondToInvite = async (req, res) => {
         const { inviteLink, accept } = req.body;
         const userId = req.userId; // Set by optionalAuthMiddleware
 
-        console.log('Responding to invite:', { inviteLink, accept, userId });
+        // console.log('Responding to invite:', { inviteLink, accept, userId });
 
         if (!userId) {
             // User is not logged in, redirect to login
@@ -115,7 +115,7 @@ const respondToInvite = async (req, res) => {
             return res.status(404).json({ error: "Invite not found" });
         }
 
-        console.log('Invite found:', invite);
+        // console.log('Invite found:', invite);
 
         // Check if the invite has expired
         if (invite.expiresAt < new Date()) {
@@ -148,7 +148,7 @@ const respondToInvite = async (req, res) => {
             invite.accepted.push(userId);
             await invite.save();
 
-            console.log('Invite updated:', invite);
+            // console.log('Invite updated:', invite);
 
             // Add user to the club's goingToday list
             const updatedClub = await Club.findByIdAndUpdate(
@@ -160,7 +160,7 @@ const respondToInvite = async (req, res) => {
                 { new: true }
             );
 
-            console.log('Club updated:', updatedClub);
+            // console.log('Club updated:', updatedClub);
 
             res.json({ message: "You're going to the club!", clubId: updatedClub._id.toString() });
         } else {

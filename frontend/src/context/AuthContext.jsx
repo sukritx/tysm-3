@@ -13,15 +13,15 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       const token = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-      console.log('Initial token:', token);
-      console.log('Initial stored user:', storedUser);
+      // console.log('Initial token:', token);
+      // console.log('Initial stored user:', storedUser);
 
       if (token && storedUser) {
         try {
           const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          console.log('User verification response:', response.data);
+          // console.log('User verification response:', response.data);
           
           if (response.data && response.data.user) {
             const userData = response.data.user;
@@ -68,14 +68,14 @@ export const AuthProvider = ({ children }) => {
 
         setUser(userDataWithAdmin);
         localStorage.setItem('user', JSON.stringify(userDataWithAdmin));
-        console.log('User data stored:', userDataWithAdmin);
+        // console.log('User data stored:', userDataWithAdmin);
 
         // Redirect based on user role
         if (userDataWithAdmin.isAdmin) {
-          console.log('Admin user logged in, redirecting to admin dashboard');
+          // console.log('Admin user logged in, redirecting to admin dashboard');
           navigate('/admin/dashboard');
         } else {
-          console.log('Regular user logged in, redirecting to home');
+          // console.log('Regular user logged in, redirecting to home');
           navigate('/');
         }
 
@@ -94,12 +94,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    console.log('Logged out, token and user removed from storage');
+    // console.log('Logged out, token and user removed from storage');
   };
 
   const getToken = useCallback(() => {
     const token = localStorage.getItem('token');
-    console.log('Retrieved token:', token);
+    // console.log('Retrieved token:', token);
     return token;
   }, []);
 
@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }) => {
   const updateUser = (userData) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
-    console.log('User data updated:', userData);
+    // console.log('User data updated:', userData);
   };
 
   const checkAuth = useCallback(async () => {

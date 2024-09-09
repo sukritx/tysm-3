@@ -60,7 +60,7 @@ const Messages = () => {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/message/all-messages/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('Fetched messages:', response.data);
+      // console.log('Fetched messages:', response.data);
       setMessages(response.data);
       // Mark messages as read after fetching
       await markMessagesAsRead(userId);
@@ -76,7 +76,7 @@ const Messages = () => {
       const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/v1/message/mark-as-read/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('Marked messages as read:', response.data);
+      // console.log('Marked messages as read:', response.data);
       // Update the messages state to reflect the read status
       setMessages(prevMessages => prevMessages.map(msg => 
         msg.sender === userId ? { ...msg, read: true } : msg
@@ -101,7 +101,7 @@ const Messages = () => {
         { message: newMessage },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log('Message sent successfully:', response.data);
+      // console.log('Message sent successfully:', response.data);
       setNewMessage('');
       fetchMessages(selectedUser);
       fetchConversations();
@@ -135,9 +135,9 @@ const Messages = () => {
 
   const renderMessage = (msg) => {
     const isFromCurrentUser = msg.isFromCurrentUser;
-    console.log('Rendering message:', msg);
-    console.log('Is from current user?', isFromCurrentUser);
-    console.log('Is message read?', msg.read);
+    // console.log('Rendering message:', msg);
+    // console.log('Is from current user?', isFromCurrentUser);
+    // console.log('Is message read?', msg.read);
 
     return (
       <div key={msg._id} className={`mb-4 flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}>

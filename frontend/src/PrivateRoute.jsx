@@ -5,7 +5,7 @@ import { useAuth } from './context/AuthContext';
 
 const PrivateRoute = () => {
   const { user, loading } = useAuth();
-  console.log('PrivateRoute - User:', user, 'Loading:', loading); // Debug log
+  // console.log('PrivateRoute - User:', user, 'Loading:', loading); // Debug log
 
   if (loading) {
     return <div>Loading...</div>;

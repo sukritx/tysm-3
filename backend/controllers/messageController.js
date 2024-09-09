@@ -10,7 +10,7 @@ const sendMessage = async (req, res) => {
         const receiverId = req.params.id;
         const { message } = req.body;
 
-        console.log("Sending message:", { senderId, receiverId, message });
+        // console.log("Sending message:", { senderId, receiverId, message });
 
         // Check if both sender and receiver exist
         const sender = await User.findById(senderId);
@@ -47,7 +47,7 @@ const sendMessage = async (req, res) => {
         });
 
         await newMessage.save();
-        console.log("Message saved successfully:", newMessage);
+        // console.log("Message saved successfully:", newMessage);
 
         res.status(200).json({
             message: "Message sent successfully"
@@ -99,7 +99,7 @@ const getMessageSameUser = async (req, res) => {
             read: message.read
         }));
 
-        console.log('Formatted messages:', formattedMessages);
+        // console.log('Formatted messages:', formattedMessages);
 
         res.status(200).json(formattedMessages);
     } catch (error) {
@@ -113,7 +113,7 @@ const getMessageSameUser = async (req, res) => {
 const getConversations = async (req, res) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.userId);
-        console.log("Fetching conversations for user:", userId);
+        // console.log("Fetching conversations for user:", userId);
 
         const conversations = await Message.aggregate([
             {
@@ -173,7 +173,7 @@ const getConversations = async (req, res) => {
             }
         ]);
 
-        console.log("Conversations found:", JSON.stringify(conversations, null, 2));
+        // console.log("Conversations found:", JSON.stringify(conversations, null, 2));
 
         res.status(200).json({ conversations });
     } catch (error) {
@@ -192,7 +192,7 @@ const markMessagesAsRead = async (req, res) => {
             { $set: { read: true } }
         );
 
-        console.log(`Marked ${updatedMessages.modifiedCount} messages as read`);
+        // console.log(`Marked ${updatedMessages.modifiedCount} messages as read`);
 
         res.status(200).json({ message: "Messages marked as read", updatedCount: updatedMessages.modifiedCount });
     } catch (error) {

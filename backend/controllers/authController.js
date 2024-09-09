@@ -67,7 +67,7 @@ const postSignup = async (req, res) => {
         });
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        console.log('Token created on signup:', token);
+        // console.log('Token created on signup:', token);
         res.cookie('jwt', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -98,7 +98,7 @@ const postLogin = async (req, res) => {
         }
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        console.log('Token created on login:', token);
+        // console.log('Token created on login:', token);
         res.cookie('jwt', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
