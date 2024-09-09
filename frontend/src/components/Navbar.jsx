@@ -332,9 +332,6 @@ const Navbar = () => {
                   <Link to={`/${username}`}>Profile</Link>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="hover:bg-gray-700">
-                <Link to="/settings">Settings</Link>
-              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-gray-700" />
               <DropdownMenuItem onClick={handleLogout} className="hover:bg-gray-700">
                 Logout
