@@ -181,20 +181,6 @@ const Navbar = () => {
         <img src={tysmLogo} alt="TYSM Logo" className="h-8 w-auto" />
         <span className="sr-only">TYSM</span>
       </Link>
-      <NavigationMenu className="hidden lg:flex">
-        <NavigationMenuList>
-          {['Home', 'About', 'Features', 'Pricing', 'Contact'].map((item) => (
-            <NavigationMenuLink key={item} asChild>
-              <Link
-                to={`/${item.toLowerCase()}`}
-                className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-gray-800 px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-700 hover:text-gray-100 focus:bg-gray-700 focus:text-gray-100 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-700/50 data-[state=open]:bg-gray-700/50 text-gray-300"
-              >
-                {item}
-              </Link>
-            </NavigationMenuLink>
-          ))}
-        </NavigationMenuList>
-      </NavigationMenu>
       <div className="ml-auto flex gap-2 items-center">
         {user && (
           <>
