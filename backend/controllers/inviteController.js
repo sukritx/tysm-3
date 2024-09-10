@@ -78,12 +78,21 @@ const getInviteDetails = async (req, res) => {
             return res.status(410).json({ error: "Invite has expired" });
         }
 
-        const acceptedUsers = invite.accepted.map(user => ({
-            username: user.username
+        // Fetch the avatar URL from the Account model
+        const userAccount = await Account.findOne({ userId: invite.userId._id });
+        const fromAvatar = userAccount ? userAccount.avatar : null;
+
+        const acceptedUsers = await Promise.all(invite.accepted.map(async (user) => {
+            const account = await Account.findOne({ userId: user._id });
+            return {
+                username: user.username,
+                avatar: account ? account.avatar : null
+            };
         }));
 
         res.json({
             from: invite.userId.username,
+            fromAvatar, // Include the avatar URL of the inviter
             clubId: invite.club._id.toString(), // Include the club ID
             clubName: invite.club.clubName,
             date: invite.inviteDate,
