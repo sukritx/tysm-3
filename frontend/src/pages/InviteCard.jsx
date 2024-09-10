@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { UserRound, Calendar, Clock, Users, Frown, Check, AlertCircle } from 'lucide-react';
+import { UserRound, Calendar, Clock, Users, Frown, Check, AlertCircle, Eye } from 'lucide-react';
 
 const InviteCard = () => {
   const { inviteLink } = useParams();
@@ -150,6 +150,16 @@ const InviteCard = () => {
               </div>
             </div>
             <h3 className="text-xl font-bold text-[#00BAFA]">{inviteData?.clubName}</h3>
+            
+            <Link to={`/club/${inviteData?.clubId}`}>
+              <Button 
+                className="w-full bg-[#00BAFA] hover:bg-[#0095c8] text-white my-4"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                คนไป {inviteData?.clubName} วันนี้
+              </Button>
+            </Link>
+
             <div className="flex items-center text-gray-300">
               <Calendar className="mr-2 h-5 w-5" />
               <span>{new Date(inviteData?.date).toLocaleDateString()}</span>
