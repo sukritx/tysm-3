@@ -28,7 +28,7 @@ const Login = () => {
     try {
       const success = await login(username, password);
       if (success) {
-        console.log('Login successful');
+        // console.log('Login successful');
         // Remove the navigation from here
       } else {
         setError('Login failed. Please check your credentials.');
@@ -45,7 +45,7 @@ const Login = () => {
   React.useEffect(() => {
     if (user) {
       if (user.isAdmin) {
-        console.log('Admin user logged in, navigating to admin dashboard');
+        // console.log('Admin user logged in, navigating to admin dashboard');
         navigate('/admin/dashboard');
       } else {
         console.log('Regular user logged in, navigating to home');

@@ -126,7 +126,7 @@ export default function EditProfile() {
           Authorization: `Bearer ${token}`
         }
       });
-      setProfile(prev => ({ ...prev, avatar: response.data.avatarUrl }));
+      setProfile(prev => ({ ...prev, avatar: response.data.avatar }));
       setPreviewUrl(null);
       setSelectedFile(null);
       showToast("Profile picture updated successfully");

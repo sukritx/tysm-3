@@ -2,6 +2,7 @@ const { User, Account } = require("../models/user.model");
 const { School } = require("../models/school.model")
 const { notificationController } = require('../controllers/notificationController');
 const { Club } = require('../models/club.model');
+const { fileUpload } = require('../middleware/file-upload');
 const mongoose = require("mongoose");
 const zod = require("zod");
 require('dotenv').config()
@@ -178,43 +179,53 @@ const updateAccount = async (req, res) => {
 };
 
 const uploadAvatar = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    const upload = fileUpload({ destination: 'avatars' }).single('avatar');
 
-    try {
-        const userId = req.userId; // Assuming this is set by your authMiddleware
-        const avatarUrl = req.body.avatarUrl; // Assuming the avatar URL is sent in the request body
-
-        if (!avatarUrl) {
-            return res.status(400).json({ error: "Avatar URL is required" });
+    upload(req, res, async function(err) {
+        if (err) {
+            console.error("Error uploading file:", err);
+            return res.status(500).json({ error: "Error uploading file", details: err.message });
         }
 
-        const updatedAccount = await Account.findOneAndUpdate(
-            { userId: userId },
-            { $set: { avatar: avatarUrl, updatedAt: new Date() } },
-            { new: true, runValidators: true, session }
-        );
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        if (!updatedAccount) {
+        try {
+            const userId = req.userId;
+
+            if (!req.file) {
+                return res.status(400).json({ error: "No file uploaded" });
+            }
+
+            const avatarUrl = req.file.location; // This is the URL of the uploaded file in DigitalOcean Spaces
+
+            const updatedAccount = await Account.findOneAndUpdate(
+                { userId: userId },
+                { $set: { avatar: avatarUrl, updatedAt: new Date() } },
+                { new: true, runValidators: true, session }
+            );
+
+            if (!updatedAccount) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(404).json({ error: "Account not found" });
+            }
+
+            await session.commitTransaction();
+            session.endSession();
+
+            res.json({
+                message: "Avatar uploaded successfully",
+                avatar: updatedAccount.avatar
+            });
+
+        } catch (error) {
             await session.abortTransaction();
             session.endSession();
-            return res.status(404).json({ error: "Account not found" });
+            console.error("Error uploading avatar:", error);
+            res.status(500).json({ error: "Internal server error" });
         }
-
-        await session.commitTransaction();
-        session.endSession();
-
-        res.json({
-            message: "Avatar uploaded successfully",
-            avatar: updatedAccount.avatar
-        });
-
-    } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-        console.error("Error uploading avatar:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
+    });
 };
 
 const getUser = async (req, res) => {
