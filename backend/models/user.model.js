@@ -166,6 +166,10 @@ const accountSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
+    totalViews: {
+        type: Number,
+        default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now

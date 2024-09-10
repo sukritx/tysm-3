@@ -289,7 +289,7 @@ const ProfilePage = () => {
               </div>
             )}
             <div className="text-sm">
-              <span className="font-medium">Profile views:</span> {profileData.uniqueViewers}
+              <span className="font-medium">Profile views:</span> {profileData.totalViews}
             </div>
           </div>
           
