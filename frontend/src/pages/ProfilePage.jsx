@@ -330,17 +330,17 @@ const ProfilePage = () => {
                 <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
                   <DialogTrigger asChild>
                     <Button variant="outline">
-                      Send Message
+                      Ghost Message
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Send Message to {username}</DialogTitle>
+                      <DialogTitle>Send Ghost Message to {username}</DialogTitle>
                     </DialogHeader>
                     <Textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Type your message here..."
+                      placeholder="พิมพ์ข้อความที่ต้องการส่งแบบไม่ระบุตัวตน"
                       className="mt-2"
                     />
                     <Button onClick={handleSendMessage} disabled={!message.trim() || coinBalance < 1}>
