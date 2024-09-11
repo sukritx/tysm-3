@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import ReactGA from 'react-ga4';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -21,6 +22,8 @@ const InviteCard = () => {
   const [responseError, setResponseError] = useState(null);
 
   useEffect(() => {
+    // Track page view
+    ReactGA.send({ hitType: "pageview", page: `/invite/${inviteLink}` });
     fetchInviteDetails();
   }, [inviteLink, user]);
 
@@ -33,9 +36,20 @@ const InviteCard = () => {
       if (user && response.data.acceptedUsers.some(acceptedUser => acceptedUser.username === user.username)) {
         setAlreadyAccepted(true);
       }
+
+      ReactGA.event({
+        category: 'Invite',
+        action: 'Fetch Invite Details',
+        label: 'Success'
+      });
     } catch (error) {
       console.error('Error fetching invite details:', error);
       setError('Failed to load invite details. Please try again.');
+      ReactGA.event({
+        category: 'Invite',
+        action: 'Fetch Invite Details',
+        label: 'Error'
+      });
     } finally {
       setLoading(false);
     }
@@ -46,6 +60,11 @@ const InviteCard = () => {
       const token = await getToken();
       
       if (!token) {
+        ReactGA.event({
+          category: 'Invite',
+          action: 'Accept Attempt',
+          label: 'Not Logged In'
+        });
         navigate('/login', { state: { from: `/invite/${inviteLink}` } });
         return;
       }
@@ -60,8 +79,18 @@ const InviteCard = () => {
       );
 
       if (response.data.redirect) {
+        ReactGA.event({
+          category: 'Invite',
+          action: 'Accept',
+          label: 'Redirect'
+        });
         navigate(response.data.redirect, { state: { from: `/invite/${inviteLink}` } });
       } else {
+        ReactGA.event({
+          category: 'Invite',
+          action: 'Accept',
+          label: 'Success'
+        });
         toast.success(response.data.message);
         setAlreadyAccepted(true);
         setResponseError(null);
@@ -73,6 +102,11 @@ const InviteCard = () => {
       } else {
         setResponseError('Failed to accept invite. Please try again.');
       }
+      ReactGA.event({
+        category: 'Invite',
+        action: 'Accept',
+        label: 'Error'
+      });
     }
   };
 
@@ -83,6 +117,11 @@ const InviteCard = () => {
         { inviteLink, accept: false },
         { withCredentials: true }
       );
+      ReactGA.event({
+        category: 'Invite',
+        action: 'Decline',
+        label: 'Success'
+      });
       setRejected(true);
       setResponseError(null);
     } catch (error) {
@@ -92,6 +131,11 @@ const InviteCard = () => {
       } else {
         setResponseError('Failed to decline invite. Please try again.');
       }
+      ReactGA.event({
+        category: 'Invite',
+        action: 'Decline',
+        label: 'Error'
+      });
     }
   };
 
@@ -151,7 +195,13 @@ const InviteCard = () => {
             </div>
             <h3 className="text-xl font-bold text-[#00BAFA]">{inviteData?.clubName}</h3>
             
-            <Link to={`/club/${inviteData?.clubId}`}>
+            <Link to={`/club/${inviteData?.clubId}`} onClick={() => {
+              ReactGA.event({
+                  category: 'Invite',
+                  action: 'View Club',
+                  label: inviteData?.clubName
+                });
+              }}>
               <Button 
                 className="w-full bg-[#00BAFA] hover:bg-[#0095c8] text-white my-4"
               >

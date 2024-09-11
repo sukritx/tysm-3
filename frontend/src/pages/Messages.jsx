@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import ReactGA from 'react-ga4';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -20,6 +21,8 @@ const Messages = () => {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    // Track page view
+    ReactGA.send({ hitType: "pageview", page: "/messages" });
     fetchConversations();
   }, []);
 
@@ -27,6 +30,11 @@ const Messages = () => {
     if (selectedUser) {
       fetchMessages(selectedUser);
       markMessagesAsRead(selectedUser);
+      ReactGA.event({
+        category: 'Messages',
+        action: 'Select Conversation',
+        label: selectedUser
+      });
     }
   }, [selectedUser]);
 
@@ -47,10 +55,20 @@ const Messages = () => {
       });
       setConversations(response.data.conversations || []);
       setLoading(false);
+      ReactGA.event({
+        category: 'Messages',
+        action: 'Fetch Conversations',
+        label: 'Success'
+      });
     } catch (error) {
       console.error('Error fetching conversations:', error);
       setError('Failed to load conversations. Please try again.');
       setLoading(false);
+      ReactGA.event({
+        category: 'Messages',
+        action: 'Fetch Conversations',
+        label: 'Error'
+      });
     }
   };
 
@@ -60,13 +78,21 @@ const Messages = () => {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/message/all-messages/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // console.log('Fetched messages:', response.data);
       setMessages(response.data);
-      // Mark messages as read after fetching
       await markMessagesAsRead(userId);
+      ReactGA.event({
+        category: 'Messages',
+        action: 'Fetch Messages',
+        label: 'Success'
+      });
     } catch (error) {
       console.error('Error fetching messages:', error);
       setError('Failed to load messages. Please try again.');
+      ReactGA.event({
+        category: 'Messages',
+        action: 'Fetch Messages',
+        label: 'Error'
+      });
     }
   };
 
@@ -76,19 +102,26 @@ const Messages = () => {
       const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/v1/message/mark-as-read/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // console.log('Marked messages as read:', response.data);
-      // Update the messages state to reflect the read status
       setMessages(prevMessages => prevMessages.map(msg => 
         msg.sender === userId ? { ...msg, read: true } : msg
       ));
-      // Update the unread count in the conversations list
       setConversations(prevConversations => 
         prevConversations.map(conv => 
           conv.userId === userId ? { ...conv, unreadCount: 0 } : conv
         )
       );
+      ReactGA.event({
+        category: 'Messages',
+        action: 'Mark Messages as Read',
+        label: 'Success'
+      });
     } catch (error) {
       console.error('Error marking messages as read:', error);
+      ReactGA.event({
+        category: 'Messages',
+        action: 'Mark Messages as Read',
+        label: 'Error'
+      });
     }
   };
 
@@ -101,10 +134,14 @@ const Messages = () => {
         { message: newMessage },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      // console.log('Message sent successfully:', response.data);
       setNewMessage('');
       fetchMessages(selectedUser);
       fetchConversations();
+      ReactGA.event({
+        category: 'Messages',
+        action: 'Send Message',
+        label: 'Success'
+      });
     } catch (error) {
       console.error('Error sending message:', error);
       if (error.response && error.response.data && error.response.data.errorCode === 'INSUFFICIENT_COINS') {
@@ -115,6 +152,11 @@ const Messages = () => {
             icon="💰"
           />
         ));
+        ReactGA.event({
+          category: 'Messages',
+          action: 'Send Message',
+          label: 'Insufficient Coins'
+        });
       } else {
         toast.custom((t) => (
           <CustomToast
@@ -123,6 +165,11 @@ const Messages = () => {
             icon="❌"
           />
         ));
+        ReactGA.event({
+          category: 'Messages',
+          action: 'Send Message',
+          label: 'Error'
+        });
       }
     }
   };
@@ -135,10 +182,6 @@ const Messages = () => {
 
   const renderMessage = (msg) => {
     const isFromCurrentUser = msg.isFromCurrentUser;
-    // console.log('Rendering message:', msg);
-    // console.log('Is from current user?', isFromCurrentUser);
-    // console.log('Is message read?', msg.read);
-
     return (
       <div key={msg._id} className={`mb-4 flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}>
         <div className={`max-w-[70%] ${isFromCurrentUser ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-lg p-3 relative`}>
@@ -182,6 +225,11 @@ const Messages = () => {
                     className={`flex items-center p-2 cursor-pointer ${selectedUser === conv.userId ? 'bg-gray-100' : ''}`}
                     onClick={() => {
                       setSelectedUser(conv.userId);
+                      ReactGA.event({
+                        category: 'Messages',
+                        action: 'Select Conversation',
+                        label: conv.userId
+                      });
                     }}
                   >
                     <div className="flex-grow">
@@ -206,7 +254,14 @@ const Messages = () => {
                 <Button 
                   variant="ghost" 
                   className="md:hidden mr-2" 
-                  onClick={() => setSelectedUser(null)}
+                  onClick={() => {
+                    setSelectedUser(null);
+                    ReactGA.event({
+                      category: 'Messages',
+                      action: 'Close Conversation',
+                      label: selectedUser
+                    });
+                  }}
                 >
                   <ArrowLeft />
                 </Button>
@@ -231,7 +286,14 @@ const Messages = () => {
                     placeholder="Type a message..."
                     className="flex-grow mr-2"
                   />
-                  <Button onClick={sendMessage}>Send (1 coin)</Button>
+                  <Button onClick={() => {
+                    sendMessage();
+                    ReactGA.event({
+                      category: 'Messages',
+                      action: 'Send Message Button Click',
+                      label: selectedUser
+                    });
+                  }}>Send (1 coin)</Button>
                 </div>
               </div>
             )}

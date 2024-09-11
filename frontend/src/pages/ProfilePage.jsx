@@ -9,6 +9,7 @@ import { InstagramIcon, Star, Clock, Users } from 'lucide-react';
 import { Textarea } from "../components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
 import { Badge } from "../components/ui/badge";
+import ReactGA from 'react-ga4';
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -25,6 +26,9 @@ const ProfilePage = () => {
   const [coinBalance, setCoinBalance] = useState(0);
 
   useEffect(() => {
+    // Track page view
+    ReactGA.send({ hitType: "pageview", page: `/profile/${username}` });
+
     const fetchProfileData = async () => {
       try {
         const token = auth.getToken();
@@ -37,10 +41,20 @@ const ProfilePage = () => {
         setProfileData(response.data.data);
         setFriendStatus(response.data.data.friendStatus);
         setLoading(false);
+        ReactGA.event({
+          category: 'Profile',
+          action: 'Fetch Profile Data',
+          label: 'Success'
+        });
       } catch (err) {
         console.error('Error fetching profile data:', err);
         setError('Failed to load profile data. Please try again.');
         setLoading(false);
+        ReactGA.event({
+          category: 'Profile',
+          action: 'Fetch Profile Data',
+          label: 'Error'
+        });
       }
     };
 
@@ -54,8 +68,18 @@ const ProfilePage = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         setCoinBalance(response.data.user.coinBalance);
+        ReactGA.event({
+          category: 'Profile',
+          action: 'Fetch User Data',
+          label: 'Success'
+        });
       } catch (err) {
         console.error('Error fetching user data:', err);
+        ReactGA.event({
+          category: 'Profile',
+          action: 'Fetch User Data',
+          label: 'Error'
+        });
       }
     };
 
@@ -65,10 +89,20 @@ const ProfilePage = () => {
     } else {
       setLoading(false);
       setError('User not authenticated');
+      ReactGA.event({
+        category: 'Profile',
+        action: 'View Attempt',
+        label: 'Not Authenticated'
+      });
     }
   }, [username, auth]);
 
   const handleEditProfile = () => {
+    ReactGA.event({
+      category: 'Profile',
+      action: 'Edit Profile',
+      label: username
+    });
     navigate('/edit-profile');
   };
 
@@ -91,9 +125,19 @@ const ProfilePage = () => {
       });
       setProfileData(response.data.data);
       setFriendStatus(response.data.data.friendStatus);
+      ReactGA.event({
+        category: 'Profile',
+        action: `Friend ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+        label: 'Success'
+      });
     } catch (err) {
       console.error('Error performing friend action:', err);
       setError('Failed to perform action. Please try again.');
+      ReactGA.event({
+        category: 'Profile',
+        action: `Friend ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+        label: 'Error'
+      });
     }
   };
 
@@ -114,9 +158,19 @@ const ProfilePage = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCoinBalance(userResponse.data.user.coinBalance);
+      ReactGA.event({
+        category: 'Profile',
+        action: 'Send Message',
+        label: 'Success'
+      });
     } catch (err) {
       console.error('Error sending message:', err);
       setError('Failed to send message. Please try again.');
+      ReactGA.event({
+        category: 'Profile',
+        action: 'Send Message',
+        label: 'Error'
+      });
     }
   };
 
@@ -168,7 +222,13 @@ const ProfilePage = () => {
           <ul className="space-y-2">
             {profileData.whoView.map((view, index) => (
               <li key={index} className="text-sm">
-                <Link to={`/${view.username}`} className="text-blue-500 hover:underline">
+                <Link to={`/${view.username}`} className="text-blue-500 hover:underline" onClick={() => {
+                  ReactGA.event({
+                    category: 'Profile',
+                    action: 'View User Profile',
+                    label: view.username
+                  });
+                }}>
                   {view.username}
                 </Link>
                 {' - '}{new Date(view.viewDate).toLocaleDateString()}
@@ -329,7 +389,13 @@ const ProfilePage = () => {
                 )}
                 <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
                   <DialogTrigger asChild>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={() => {
+                      ReactGA.event({
+                        category: 'Profile',
+                        action: 'Open Message Dialog',
+                        label: username
+                      });
+                    }}>
                       Ghost Message
                     </Button>
                   </DialogTrigger>

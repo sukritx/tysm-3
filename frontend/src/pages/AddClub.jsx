@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import ReactGA from 'react-ga4';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,9 @@ const AddClub = () => {
   ];
 
   useEffect(() => {
+    // Track page view
+    ReactGA.send({ hitType: "pageview", page: "/add-club" });
+
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -48,6 +52,11 @@ const AddClub = () => {
   useEffect(() => {
     if (location.state?.selectedProvince) {
       setProvince(location.state.selectedProvince);
+      ReactGA.event({
+        category: 'AddClub',
+        action: 'Pre-select Province',
+        label: location.state.selectedProvince
+      });
     }
   }, [location.state]);
 
@@ -63,6 +72,11 @@ const AddClub = () => {
     if (!clubName || !province) {
       setError('Please fill in all fields');
       setLoading(false);
+      ReactGA.event({
+        category: 'AddClub',
+        action: 'Submit Attempt',
+        label: 'Incomplete Form'
+      });
       return;
     }
 
@@ -74,10 +88,20 @@ const AddClub = () => {
       );
 
       if (response.status === 201) {
+        ReactGA.event({
+          category: 'AddClub',
+          action: 'Club Created',
+          label: clubName
+        });
         navigate('/');  // Redirect to home page after successful creation
       }
     } catch (err) {
       setError(err.response?.data?.message || 'An error occurred while adding the club');
+      ReactGA.event({
+        category: 'AddClub',
+        action: 'Club Creation Error',
+        label: err.response?.data?.message || 'Unknown error'
+      });
     } finally {
       setLoading(false);
     }
@@ -97,7 +121,14 @@ const AddClub = () => {
                 id="clubName"
                 type="text"
                 value={clubName}
-                onChange={(e) => setClubName(e.target.value)}
+                onChange={(e) => {
+                  setClubName(e.target.value);
+                  ReactGA.event({
+                    category: 'AddClub',
+                    action: 'Input Club Name',
+                    label: e.target.value
+                  });
+                }}
                 placeholder="Enter club name"
                 className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
               />
@@ -107,7 +138,14 @@ const AddClub = () => {
               <div className="relative mt-1">
                 <Button
                   type="button"
-                  onClick={() => setIsOpen(!isOpen)}
+                  onClick={() => {
+                    setIsOpen(!isOpen);
+                    ReactGA.event({
+                      category: 'AddClub',
+                      action: 'Toggle Province Dropdown',
+                      label: isOpen ? 'Close' : 'Open'
+                    });
+                  }}
                   className="w-full justify-between bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
                 >
                   {province || "Select a province"}
@@ -119,7 +157,14 @@ const AddClub = () => {
                       type="text"
                       placeholder="Search provinces..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        ReactGA.event({
+                          category: 'AddClub',
+                          action: 'Search Province',
+                          label: e.target.value
+                        });
+                      }}
                       className="m-2 w-[calc(100%-1rem)] bg-gray-600 border-gray-500 text-white placeholder-gray-400"
                     />
                     <ul className="max-h-60 overflow-auto">
@@ -131,6 +176,11 @@ const AddClub = () => {
                             setProvince(prov);
                             setIsOpen(false);
                             setSearchTerm("");
+                            ReactGA.event({
+                              category: 'AddClub',
+                              action: 'Select Province',
+                              label: prov
+                            });
                           }}
                         >
                           {prov}

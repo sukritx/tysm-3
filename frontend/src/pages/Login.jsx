@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ReactGA from 'react-ga4';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +15,22 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, user } = useAuth();
 
+  useEffect(() => {
+    // Track page view
+    ReactGA.send({ hitType: "pageview", page: "/login" });
+  }, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
 
     if (!username.trim() || !password.trim()) {
       setError('Please fill in both username and password.');
+      ReactGA.event({
+        category: 'User',
+        action: 'Login Attempt',
+        label: 'Incomplete Form'
+      });
       return;
     }
 
@@ -28,14 +39,27 @@ const Login = () => {
     try {
       const success = await login(username, password);
       if (success) {
-        // console.log('Login successful');
-        // Remove the navigation from here
+        ReactGA.event({
+          category: 'User',
+          action: 'Login',
+          label: 'Success'
+        });
       } else {
         setError('Login failed. Please check your credentials.');
+        ReactGA.event({
+          category: 'User',
+          action: 'Login',
+          label: 'Failed'
+        });
       }
     } catch (err) {
       console.error('Login error:', err);
       setError('An error occurred during login. Please try again.');
+      ReactGA.event({
+        category: 'User',
+        action: 'Login',
+        label: 'Error'
+      });
     } finally {
       setLoading(false);
     }

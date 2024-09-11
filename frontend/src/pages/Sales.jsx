@@ -1,14 +1,23 @@
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coins, Crown, Plus, Eye, Ghost, Users, Badge } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import ReactGA from 'react-ga4';
 
 const Sales = () => {
   const { user, getToken, updateUser } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Track page view
+    ReactGA.send({ hitType: "pageview", page: "/sales" });
+  }, []);
 
   const buyVIP = async () => {
+    setLoading(true);
     try {
       const token = getToken();
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/sale/buy-vip`, 
@@ -17,15 +26,33 @@ const Sales = () => {
       );
       updateUser(response.data.user);
       toast.success('Successfully purchased VIP status!');
+      ReactGA.event({
+        category: 'Sales',
+        action: 'Buy VIP',
+        label: 'Success'
+      });
     } catch (error) {
       console.error('Error buying VIP:', error);
       toast.error(error.response?.data?.message || 'Failed to purchase VIP status');
+      ReactGA.event({
+        category: 'Sales',
+        action: 'Buy VIP',
+        label: 'Error',
+        value: error.response?.status
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const addLine = () => {
     window.open('https://lin.ee/5Xyg8Yl', '_blank');
     toast.success('Redirecting to add LINE friend...');
+    ReactGA.event({
+      category: 'Sales',
+      action: 'Add LINE',
+      label: 'Redirect'
+    });
   };
 
   return (
@@ -47,7 +74,14 @@ const Sales = () => {
               <p>100 Coins - 100฿</p>
             </div>
             <Button 
-              onClick={addLine} 
+              onClick={() => {
+                addLine();
+                ReactGA.event({
+                  category: 'Sales',
+                  action: 'Click Buy Coins',
+                  label: 'LINE'
+                });
+              }} 
               className="w-full mt-4 bg-green-500 hover:bg-green-600 flex items-center justify-center"
             >
               <Plus className="mr-2" /> แอดไลน์เติมเหรียญ
@@ -71,11 +105,18 @@ const Sales = () => {
               <li className="flex items-center"><Badge className="mr-2" /> Exclusive VIP badge</li>
             </ul>
             <Button 
-              onClick={buyVIP} 
+              onClick={() => {
+                buyVIP();
+                ReactGA.event({
+                  category: 'Sales',
+                  action: 'Click Buy VIP',
+                  label: user?.coinBalance >= 99 ? 'Sufficient Coins' : 'Insufficient Coins'
+                });
+              }} 
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
-              disabled={user?.coinBalance < 99}
+              disabled={user?.coinBalance < 99 || loading}
             >
-              Buy VIP Status (99 coins)
+              {loading ? 'Processing...' : 'Buy VIP Status (99 coins)'}
             </Button>
             {user?.coinBalance < 99 && (
               <p className="text-red-500 mt-2">Insufficient coins. Please buy more coins.</p>

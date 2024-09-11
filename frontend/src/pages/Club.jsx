@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { Input } from "@/components/ui/input";
 import { Link as LinkIcon, Copy } from 'lucide-react';
+import ReactGA from 'react-ga4';
 
 const Club = () => {
   const { id } = useParams();
@@ -21,6 +22,12 @@ const Club = () => {
   const [isGoingToday, setIsGoingToday] = useState(false); // Initialize to false
   const [inviteLink, setInviteLink] = useState('');
   const [showInviteLink, setShowInviteLink] = useState(false);
+
+  useEffect(() => {
+    // Track page view
+    ReactGA.send({ hitType: "pageview", page: `/club/${id}` });
+    fetchClubData();
+  }, [id, user, navigate]);
 
   const fetchClubData = async () => {
     if (!user) {
@@ -44,10 +51,11 @@ const Club = () => {
       );
       setIsGoingToday(userIsGoing);
 
-      // console.log('Current user ID:', user.id);
-      // console.log('People going:', response.data.peopleGoing);
-      // console.log('Is user going:', userIsGoing);
-
+      ReactGA.event({
+        category: 'Club',
+        action: 'Fetch Club Data',
+        label: 'Success'
+      });
     } catch (error) {
       console.error('Error fetching club data:', error.response || error);
       if (error.response && error.response.status === 401) {
@@ -56,32 +64,26 @@ const Club = () => {
       } else {
         setError(`An error occurred: ${error.response?.data?.message || 'Unknown error'}`);
       }
+      ReactGA.event({
+        category: 'Club',
+        action: 'Fetch Club Data',
+        label: 'Error'
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchClubData();
-  }, [id, user, navigate]);
-
   const handleGoingToday = async () => {
     try {
       const token = await getToken();
-      // console.log('Token:', token);
       const config = {
         headers: { Authorization: `Bearer ${token}` }
       };
 
-      // console.log('Current user ID:', user.id);
-      // console.log('Is user going (before request):', isGoingToday);
-      // console.log('Club data before request:', clubData);
-
       if (isGoingToday) {
         // Undo going to club
-        // console.log(`Attempting to undo go for club ${id}`);
         const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/club/undo-go/${id}`, {}, config);
-        // console.log('Undo go response:', response.data);
         toast.success("คุณได้ยกเลิกการไปวันนี้แล้ว");
         setIsGoingToday(false);
         setClubData(prevData => ({
@@ -89,6 +91,11 @@ const Club = () => {
           totalGoingToday: prevData.totalGoingToday - 1,
           peopleGoing: prevData.peopleGoing.filter(person => String(person.userId) !== String(user.id))
         }));
+        ReactGA.event({
+          category: 'Club',
+          action: 'Undo Going',
+          label: clubData.clubName
+        });
       } else {
         // Go to club
         await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/club/go/${id}`, {}, config);
@@ -99,16 +106,22 @@ const Club = () => {
           totalGoingToday: prevData.totalGoingToday + 1,
           peopleGoing: [...prevData.peopleGoing, { userId: user.id, username: user.username, isFriend: false }]
         }));
+        ReactGA.event({
+          category: 'Club',
+          action: 'Going',
+          label: clubData.clubName
+        });
       }
-
-      // console.log('Is user going (after request):', !isGoingToday);
-      // console.log('Club data after request:', clubData);
     } catch (error) {
       console.error('Error updating going status:', error);
       console.error('Error response:', error.response?.data);
       toast.error(error.response?.data?.message || 'Failed to update status');
       await fetchClubData();
-      // console.log('Club data after re-fetch:', clubData);
+      ReactGA.event({
+        category: 'Club',
+        action: 'Update Going Status',
+        label: 'Error'
+      });
     }
   };
 
@@ -122,15 +135,30 @@ const Club = () => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/invite/send`, { clubId: id }, config);
       setInviteLink(response.data.inviteUrl);
       setShowInviteLink(true);
+      ReactGA.event({
+        category: 'Club',
+        action: 'Generate Invite Link',
+        label: clubData.clubName
+      });
     } catch (error) {
       console.error('Error generating invite link:', error);
       toast.error('Failed to generate invite link');
+      ReactGA.event({
+        category: 'Club',
+        action: 'Generate Invite Link',
+        label: 'Error'
+      });
     }
   };
 
   const copyInviteLink = () => {
     navigator.clipboard.writeText(inviteLink);
     toast.success('Invite link copied to clipboard!');
+    ReactGA.event({
+      category: 'Club',
+      action: 'Copy Invite Link',
+      label: clubData.clubName
+    });
   };
 
   if (loading) {
@@ -163,7 +191,13 @@ const Club = () => {
       animate={{ opacity: 1 }} 
       className="container mx-auto p-4 bg-gray-900 min-h-screen"
     >
-      <Link to="/">
+      <Link to="/" onClick={() => {
+        ReactGA.event({
+          category: 'Navigation',
+          action: 'Return to Home',
+          label: 'From Club Page'
+        });
+      }}>
         <Button className="mb-4 bg-[#00BAFA] hover:bg-[#0095c8] text-white">
           <ArrowLeft className="mr-2 h-4 w-4" /> กลับหน้าหลัก
         </Button>
@@ -227,7 +261,7 @@ const Club = () => {
                   <ul className="space-y-3 max-h-60 overflow-y-auto pr-2">
                     {clubData.peopleGoing.map((person, index) => (
                       <motion.li 
-                        key={person.userId} // Use unique identifier instead of index
+                        key={person.userId}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
@@ -239,7 +273,13 @@ const Club = () => {
                             <UserRound className="w-6 h-6" />
                           </AvatarFallback>
                         </Avatar>
-                        <Link to={`/${person.username}`} className="flex-grow text-white hover:text-[#00BAFA] transition duration-300">
+                        <Link to={`/${person.username}`} className="flex-grow text-white hover:text-[#00BAFA] transition duration-300" onClick={() => {
+                          ReactGA.event({
+                            category: 'Club',
+                            action: 'View User Profile',
+                            label: person.username
+                          });
+                        }}>
                           {person.username}
                         </Link>
                         {person.isFriend && <span className="text-xl" role="img" aria-label="Friend">👥✨</span>}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import ReactGA from 'react-ga4';
+
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +63,11 @@ const Home = () => {
     }
   }, [clubSearchTerm, clubs]);
 
+  useEffect(() => {
+    // Track homepage view
+    ReactGA.send({ hitType: "pageview", page: "/home" });
+  }, []);
+
   const fetchClubs = async (province) => {
     setLoading(true);
     setError(null);
@@ -82,7 +89,33 @@ const Home = () => {
   );
 
   const handleAddClub = () => {
+    ReactGA.event({
+      category: 'User Interaction',
+      action: 'Clicked Add Club',
+      label: selectedProvince
+    });
     navigate('/add-club', { state: { selectedProvince } });
+  };
+
+  const handleClubSearch = (term) => {
+    setClubSearchTerm(term);
+    // Only track if the search term is not empty
+    if (term.trim()) {
+      ReactGA.event({
+        category: 'User Interaction',
+        action: 'Club Search',
+        label: term
+      });
+    }
+  };
+
+  const handleViewClubDetails = (clubId, clubName) => {
+    ReactGA.event({
+      category: 'User Interaction',
+      action: 'View Club Details',
+      label: clubName
+    });
+    navigate(`/club/${clubId}`);
   };
 
   return (
@@ -117,6 +150,11 @@ const Home = () => {
                         setSelectedProvince(province);
                         setIsOpen(false);
                         setSearchTerm("");
+                        ReactGA.event({
+                          category: 'User Interaction',
+                          action: 'Selected Province',
+                          label: province
+                        });
                       }}
                     >
                       {province}
@@ -138,7 +176,7 @@ const Home = () => {
                 type="text"
                 placeholder="ค้นหาคลับ..."
                 value={clubSearchTerm}
-                onChange={(e) => setClubSearchTerm(e.target.value)}
+                onChange={(e) => handleClubSearch(e.target.value)}
                 className="w-full bg-gray-800 border-gray-700 text-white pl-10"
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -159,13 +197,13 @@ const Home = () => {
                       <h3 className="text-lg font-semibold text-[#00BAFA]">{club.clubName}</h3>
                       <p className="text-sm text-gray-300">จำนวนคนวันนี้: {club.todayCount}</p>
                     </div>
-                    <Link
-                      to={`/club/${club._id}`}
+                    <button
+                      onClick={() => handleViewClubDetails(club._id, club.clubName)}
                       className="inline-flex items-center gap-2 text-sm font-medium text-[#00BAFA] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BAFA] mt-4"
                     >
                       ดูรายละเอียด
                       <ArrowRightIcon className="w-4 h-4" />
-                    </Link>
+                    </button>
                     {!user && (
                       <div className="absolute top-2 right-2">
                         <Lock className="w-5 h-5 text-gray-400" />

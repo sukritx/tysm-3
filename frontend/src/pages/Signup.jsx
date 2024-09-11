@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ReactGA from 'react-ga4';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,11 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  useEffect(() => {
+    // Track page view
+    ReactGA.send({ hitType: "pageview", page: "/signup" });
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -73,6 +79,11 @@ const Signup = () => {
     if (validateStep1()) {
       setStep(2);
       setError('');
+      ReactGA.event({
+        category: 'User',
+        action: 'Signup Step',
+        label: 'Completed Step 1'
+      });
     }
   };
 
@@ -87,15 +98,31 @@ const Signup = () => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/signup`, formData);
       console.log(response.data.message);
       
+      ReactGA.event({
+        category: 'User',
+        action: 'Signup',
+        label: 'Success'
+      });
+
       const loginSuccess = await login(formData.username, formData.password);
       if (loginSuccess) {
         navigate('/');
       } else {
         setError('Signup successful, but automatic login failed. Please try logging in manually.');
+        ReactGA.event({
+          category: 'User',
+          action: 'Auto Login After Signup',
+          label: 'Failed'
+        });
       }
     } catch (error) {
       console.error('Signup error:', error);
       setError(error.response?.data?.message || 'Error creating account');
+      ReactGA.event({
+        category: 'User',
+        action: 'Signup',
+        label: 'Failed'
+      });
     } finally {
       setIsLoading(false);
     }

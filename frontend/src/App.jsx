@@ -18,7 +18,10 @@ import Sales from './pages/Sales';
 import AdminDashboard from './pages/AdminDashboard';
 import AddCoin from './pages/AddCoin';
 
+import ReactGA from 'react-ga4';
+
 function App() {
+  ReactGA.initialize(import.meta.env.VITE_GA_TRACKING_ID);
   return (
     <Router>
       <AuthProvider>
