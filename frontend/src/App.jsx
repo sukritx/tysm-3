@@ -23,6 +23,7 @@ import ReactGA from 'react-ga4';
 function App() {
   React.useEffect(() => {
     const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    console.log('MEASUREMENT_ID:', MEASUREMENT_ID); // Add this line
     if (MEASUREMENT_ID) {
       ReactGA.initialize(MEASUREMENT_ID);
       console.log('GA initialized with:', MEASUREMENT_ID);
