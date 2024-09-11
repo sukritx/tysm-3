@@ -22,13 +22,20 @@ import ReactGA from 'react-ga4';
 
 function App() {
   React.useEffect(() => {
-    const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
-    console.log('MEASUREMENT_ID:', MEASUREMENT_ID); // Add this line
-    if (MEASUREMENT_ID) {
+    try {
+      console.log('Environment:', import.meta.env);
+      const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+      console.log('MEASUREMENT_ID:', MEASUREMENT_ID);
+      
+      if (!MEASUREMENT_ID) {
+        console.warn('Google Analytics Measurement ID is missing');
+        return; // Exit early if MEASUREMENT_ID is not set
+      }
+      
       ReactGA.initialize(MEASUREMENT_ID);
       console.log('GA initialized with:', MEASUREMENT_ID);
-    } else {
-      console.warn('Google Analytics Measurement ID is missing');
+    } catch (error) {
+      console.error('Error initializing Google Analytics:', error);
     }
   }, []);
   return (
