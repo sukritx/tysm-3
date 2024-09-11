@@ -21,7 +21,7 @@ import AddCoin from './pages/AddCoin';
 import ReactGA from 'react-ga4';
 
 function App() {
-  ReactGA.initialize(import.meta.env.VITE_GA_TRACKING_ID);
+  ReactGA.initialize(import.meta.env.VITE_GA_MEASUREMENT_ID);
   return (
     <Router>
       <AuthProvider>
