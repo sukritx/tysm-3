@@ -3,9 +3,20 @@ const { School } = require("../models/school.model")
 const { notificationController } = require('../controllers/notificationController');
 const { Club } = require('../models/club.model');
 const { fileUpload } = require('../middleware/file-upload');
+const { S3Client, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const mongoose = require("mongoose");
 const zod = require("zod");
 require('dotenv').config()
+
+const s3Client = new S3Client({
+    endpoint: process.env.DO_SPACES_ENDPOINT,
+    region: process.env.DO_SPACES_REGION,
+    credentials: {
+      accessKeyId: process.env.DO_SPACES_KEY,
+      secretAccessKey: process.env.DO_SPACES_SECRET
+    },
+    forcePathStyle: true
+  });
 
 const getUserMe = async (req, res) => {
     try {
@@ -197,11 +208,36 @@ const uploadAvatar = async (req, res) => {
                 return res.status(400).json({ error: "No file uploaded" });
             }
 
-            const avatarUrl = req.file.location; // This is the URL of the uploaded file in DigitalOcean Spaces
+            // Construct the CDN URL manually
+            const newAvatarUrl = `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.cdn.digitaloceanspaces.com/${req.file.key}`;
+
+            // Find the current account to get the old avatar URL
+            const currentAccount = await Account.findOne({ userId: userId });
+
+            if (currentAccount && currentAccount.avatar) {
+                // Extract the key from the old avatar URL
+                const oldAvatarKey = currentAccount.avatar.split('.com/')[1];
+
+                // Delete the old avatar from S3
+                if (oldAvatarKey) {
+                    const deleteParams = {
+                        Bucket: process.env.DO_SPACES_BUCKET,
+                        Key: oldAvatarKey,
+                    };
+
+                    try {
+                        await s3Client.send(new DeleteObjectCommand(deleteParams));
+                        // console.log(`Old avatar deleted: ${oldAvatarKey}`);
+                    } catch (deleteError) {
+                        console.error("Error deleting old avatar:", deleteError);
+                        // Decide if you want to throw this error or just log it
+                    }
+                }
+            }
 
             const updatedAccount = await Account.findOneAndUpdate(
                 { userId: userId },
-                { $set: { avatar: avatarUrl, updatedAt: new Date() } },
+                { $set: { avatar: newAvatarUrl, updatedAt: new Date() } },
                 { new: true, runValidators: true, session }
             );
 

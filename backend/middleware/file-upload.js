@@ -35,8 +35,13 @@ const fileUpload = (options = {}) => {
       key: function (req, file, cb) {
         const ext = MIME_TYPE_MAP[file.mimetype];
         const userId = req.userId;
-        cb(null, `${userId}/${destination}/${Date.now()}.${ext}`);
-      }
+        const fileName = `${userId}/${destination}/${Date.now()}.${ext}`;
+        cb(null, fileName);
+      },
+      metadata: function (req, file, cb) {
+        cb(null, { fieldName: file.fieldname });
+      },
+      contentType: multerS3.AUTO_CONTENT_TYPE,
     }),
     fileFilter: (req, file, cb) => {
       const isValid = !!MIME_TYPE_MAP[file.mimetype];
