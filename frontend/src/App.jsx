@@ -21,10 +21,7 @@ import AddCoin from './pages/AddCoin';
 import ReactGA from 'react-ga4';
 
 function App() {
-  React.useEffect(() => {
-    console.log('App mounted');
-    // Remove all GA initialization code
-  }, []);
+  ReactGA.initialize(import.meta.env.VITE_GA_MEASUREMENT_ID);
   return (
     <Router>
       <AuthProvider>
