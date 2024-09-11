@@ -21,7 +21,15 @@ import AddCoin from './pages/AddCoin';
 import ReactGA from 'react-ga4';
 
 function App() {
-  ReactGA.initialize(import.meta.env.VITE_GA_MEASUREMENT_ID);
+  React.useEffect(() => {
+    const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (MEASUREMENT_ID) {
+      ReactGA.initialize(MEASUREMENT_ID);
+      console.log('GA initialized with:', MEASUREMENT_ID);
+    } else {
+      console.warn('Google Analytics Measurement ID is missing');
+    }
+  }, []);
   return (
     <Router>
       <AuthProvider>
