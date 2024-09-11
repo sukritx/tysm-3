@@ -11,7 +11,7 @@ const signupBody = zod.object({
     phonenumber: zod.string().max(10),
     firstName: zod.string().max(50),
     lastName: zod.string().max(50),
-    instagram: zod.string().max(30)
+    email: zod.string().email()
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"]
@@ -29,10 +29,10 @@ const postSignup = async (req, res) => {
             return res.status(400).json({ error: error.errors });
         }
 
-        const { username, password, phonenumber, firstName, lastName, instagram } = data;
+        const { username, password, phonenumber, firstName, lastName, email } = data;
 
         const existingUser = await User.findOne({
-            $or: [{ username }, { phonenumber }]
+            $or: [{ username }, { phonenumber }, { email }]
         });
 
         if (existingUser) {
@@ -40,6 +40,8 @@ const postSignup = async (req, res) => {
                 return res.status(409).json({ message: "Username already taken" });
             } else if (existingUser.phonenumber === phonenumber) {
                 return res.status(409).json({ message: "Phone number already in use" });
+            } else if (existingUser.email === email) {
+                return res.status(409).json({ message: "Email already in use" });
             }
         }
 
@@ -50,12 +52,12 @@ const postSignup = async (req, res) => {
             password: hashedPassword,
             phonenumber,
             firstName,
-            lastName
+            lastName,
+            email
         });
 
         await Account.create({
             userId: user._id,
-            instagram: instagram.toLowerCase(),
             coin: {
                 balance: 10,
                 transactions: [{

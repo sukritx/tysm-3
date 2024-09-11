@@ -16,7 +16,7 @@ const Signup = () => {
     phonenumber: '',
     firstName: '',
     lastName: '',
-    instagram: ''
+    email: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -191,13 +191,15 @@ const Signup = () => {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="instagram" className="text-white">Instagram Username</Label>
+        <Label htmlFor="email" className="text-white">Email</Label>
         <Input
-          id="instagram"
-          name="instagram"
-          value={formData.instagram}
+          id="email"
+          type="email"
+          name="email"
+          value={formData.email}
           onChange={handleChange}
-          placeholder="Your Instagram username (optional)"
+          placeholder="Your email address"
+          required
           className="bg-gray-700 text-white border-gray-600"
         />
       </div>
