@@ -451,17 +451,20 @@ const getUserFriends = async (req, res) => {
       const account = await Account.findOne({ userId })
         .populate({
           path: 'friendsList.friendId',
-          select: 'username avatar'
+          select: 'username'
         });
   
       if (!account) {
         return res.status(404).json({ message: "Account not found" });
       }
   
-      const friends = account.friendsList.map(friend => ({
-        _id: friend.friendId._id,
-        username: friend.friendId.username,
-        avatar: friend.friendId.avatar
+      const friends = await Promise.all(account.friendsList.map(async (friend) => {
+        const friendAccount = await Account.findOne({ userId: friend.friendId._id }).select('avatar');
+        return {
+          _id: friend.friendId._id,
+          username: friend.friendId.username,
+          avatar: friendAccount ? friendAccount.avatar : null
+        };
       }));
   
       res.json({ friends });
@@ -469,7 +472,7 @@ const getUserFriends = async (req, res) => {
       console.error("Error fetching friends list:", err);
       res.status(500).json({ message: "Internal server error" });
     }
-};
+  };
 
 const getWhoViewed = async (req, res) => {
     try {
