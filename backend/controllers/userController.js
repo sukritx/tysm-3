@@ -327,7 +327,7 @@ const profileView = async (req, res) => {
         }
 
         const account = await Account.findOne({ userId: user._id })
-            .select('biography school faculty whoView birthday interest instagram avatar vip totalViews')
+            .select('biography school faculty whoView birthday interest instagram avatar vip totalViews lastViewedBy')
             .populate('school', 'schoolName schoolType')
             .populate({
                 path: 'whoView.userId',
@@ -339,7 +339,12 @@ const profileView = async (req, res) => {
         }
 
         const { biography, school, faculty, whoView, birthday, interest, instagram, avatar, vip } = account;
-        let { totalViews } = account;
+        let { totalViews, lastViewedBy } = account;
+
+        // Initialize lastViewedBy if it doesn't exist
+        if (!lastViewedBy) {
+            lastViewedBy = new Map();
+        }
 
         const viewerAccount = await Account.findOne({ userId: viewerId });
         const isViewerVip = viewerAccount && viewerAccount.vip.some(vip => vip.vipLevel >= 1 && vip.vipExpire > new Date());
@@ -348,15 +353,40 @@ const profileView = async (req, res) => {
 
         // Update whoView and totalViews if it's not the user's own profile and the viewer is not VIP
         if (!isOwnProfile && !isViewerVip) {
-            account.whoView.push({ userId: viewerId, viewDate: new Date() });
-            account.totalViews += 1;
+            const currentTime = new Date();
+            const oneHourAgo = new Date(currentTime - 60 * 60 * 1000); // 1 hour ago
 
-            // Keep only the most recent 50 views
-            if (account.whoView.length > 50) {
-                account.whoView = account.whoView.sort((a, b) => b.viewDate - a.viewDate).slice(0, 50);
+            // Check if the viewer has viewed this profile in the last hour
+            if (!lastViewedBy.get(viewerId) || lastViewedBy.get(viewerId) < oneHourAgo) {
+                // Update totalViews only if it's been more than an hour since the last view
+                account.totalViews += 1;
+
+                // Update or add the viewer to the whoView list
+                const existingViewIndex = whoView.findIndex(view => view.userId._id.toString() === viewerId);
+                if (existingViewIndex !== -1) {
+                    // Remove the existing entry
+                    whoView.splice(existingViewIndex, 1);
+                }
+                // Add the viewer to the beginning of the list
+                whoView.unshift({ userId: viewerId, viewDate: currentTime });
+
+                // Limit whoView to the most recent 50 unique viewers
+                const uniqueViewers = new Map();
+                const limitedWhoView = [];
+                for (const view of whoView) {
+                    if (!uniqueViewers.has(view.userId._id.toString()) && limitedWhoView.length < 50) {
+                        uniqueViewers.set(view.userId._id.toString(), true);
+                        limitedWhoView.push(view);
+                    }
+                }
+                account.whoView = limitedWhoView;
+
+                // Update lastViewedBy
+                lastViewedBy.set(viewerId, currentTime);
+                account.lastViewedBy = lastViewedBy;
+
+                await account.save();
             }
-
-            await account.save();
         }
 
         // Count the number of unique viewers

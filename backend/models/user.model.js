@@ -184,6 +184,11 @@ const accountSchema = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: Date.now
+    },
+    lastViewedBy: {
+        type: Map,
+        of: Date,
+        default: new Map()
     }
 });
 
