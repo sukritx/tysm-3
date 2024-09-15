@@ -10,6 +10,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
 import { Badge } from "../components/ui/badge";
 import ReactGA from 'react-ga4';
+import { ScrollArea } from "../components/ui/scroll-area";
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -24,6 +25,10 @@ const ProfilePage = () => {
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
   const [coinBalance, setCoinBalance] = useState(0);
+  const [friendsList, setFriendsList] = useState([]);
+  const [showFriendsDialog, setShowFriendsDialog] = useState(false);
+
+  const isOwnProfile = auth.user && auth.user.username === username;
 
   useEffect(() => {
     // Track page view
@@ -83,9 +88,27 @@ const ProfilePage = () => {
       }
     };
 
+    const fetchFriendsList = async () => {
+      if (isOwnProfile) {
+        try {
+          const token = auth.getToken();
+          if (!token) {
+            throw new Error('No authentication token found');
+          }
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me/friends`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setFriendsList(response.data.friends);
+        } catch (err) {
+          console.error('Error fetching friends list:', err);
+        }
+      }
+    };
+
     if (auth.user) {
       fetchProfileData();
       fetchUserData();
+      fetchFriendsList();
     } else {
       setLoading(false);
       setError('User not authenticated');
@@ -95,7 +118,7 @@ const ProfilePage = () => {
         label: 'Not Authenticated'
       });
     }
-  }, [username, auth]);
+  }, [username, auth, isOwnProfile]);
 
   const handleEditProfile = () => {
     ReactGA.event({
@@ -274,11 +297,67 @@ const ProfilePage = () => {
     );
   };
 
+  const renderFriendsList = () => {
+    if (!isOwnProfile || friendsList.length === 0) return null;
+    return (
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold flex items-center">
+            <Users className="mr-2" /> Friends ({friendsList.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Dialog open={showFriendsDialog} onOpenChange={setShowFriendsDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={() => {
+                ReactGA.event({
+                  category: 'Profile',
+                  action: 'View Friends List',
+                  label: username
+                });
+              }}>
+                View All Friends
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Friends List</DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+                <ul className="space-y-2">
+                  {friendsList.map((friend) => (
+                    <li key={friend._id} className="flex items-center space-x-2">
+                      <Avatar className="h-8 w-8">
+                        <img src={friend.avatar} alt={friend.username} onError={(e) => {
+                          e.target.onerror = null; 
+                          e.target.src = "/placeholder-user.jpg";
+                        }} />
+                      </Avatar>
+                      <Link to={`/${friend.username}`} className="text-blue-500 hover:underline" onClick={() => {
+                        setShowFriendsDialog(false);
+                        ReactGA.event({
+                          category: 'Profile',
+                          action: 'View Friend Profile',
+                          label: friend.username
+                        });
+                      }}>
+                        {friend.username}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
   if (error) return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>;
   if (!profileData) return <div className="flex justify-center items-center h-screen">Profile not found</div>;
 
-  const isOwnProfile = auth.user && auth.user.username === username;
   const isVip = profileData.vipStatus && profileData.vipStatus.isVip;
 
   return (
@@ -423,6 +502,7 @@ const ProfilePage = () => {
           {isVip && renderVipStatus()}
           {isOwnProfile && (isVip ? renderProfileViewers() : renderUnlockProfileViewers())}
           {renderTodaysClubs()}
+          {renderFriendsList()}
         </CardContent>
       </Card>
     </div>

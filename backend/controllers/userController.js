@@ -444,6 +444,33 @@ const profileView = async (req, res) => {
     }
 };
 
+const getUserFriends = async (req, res) => {
+    try {
+      const userId = req.userId;
+  
+      const account = await Account.findOne({ userId })
+        .populate({
+          path: 'friendsList.friendId',
+          select: 'username avatar'
+        });
+  
+      if (!account) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+  
+      const friends = account.friendsList.map(friend => ({
+        _id: friend.friendId._id,
+        username: friend.friendId.username,
+        avatar: friend.friendId.avatar
+      }));
+  
+      res.json({ friends });
+    } catch (err) {
+      console.error("Error fetching friends list:", err);
+      res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 const getWhoViewed = async (req, res) => {
     try {
         const userId = req.userId; // set by your authMiddleware
@@ -607,6 +634,7 @@ module.exports = {
     updateAccount,
     getUser,
     profileView,
+    getUserFriends,
     getWhoViewed,
     addFriend,
     acceptFriendRequest,
