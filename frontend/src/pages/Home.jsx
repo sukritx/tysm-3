@@ -121,7 +121,7 @@ const Home = () => {
   return (
     <div className="bg-gray-900 text-white min-h-screen">
       <div className="container mx-auto px-4 py-8 md:px-6 md:py-12">
-        <h1 className="text-4xl text-center font-bold mb-6 text-[#00BAFA]">🪩 วันนี้ไปร้านไหนกัน?</h1>
+        <h1 className="text-4xl text-center font-bold mb-6 text-[#00BAFA]">วันนี้ไปร้านไหนกัน?</h1>
         
         <div className="max-w-md mx-auto mb-8" ref={dropdownRef}>
           <div className="relative">
