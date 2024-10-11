@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema({
     sender: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: false  // Not required for system notifications like VIP purchase
+        required: false  // Not required for system notifications
     },
     receiver: {
         type: mongoose.Schema.Types.ObjectId,
@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
     },
     notificationType: {
         type: String,
-        enum: ["receivedFriendRequest", "friendAdded", "incomingChat", "vipPurchase"],
+        enum: ["receivedFriendRequest", "friendAdded", "incomingChat", "vipPurchase", "newComment", "mentionedInComment"],
         required: true
     },
     message: {
@@ -23,6 +23,14 @@ const notificationSchema = new mongoose.Schema({
     read: {
         type: Boolean,
         default: false
+    },
+    relatedPost: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Post'
+    },
+    relatedComment: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Comment'
     },
     createdAt: {
         type: Date,

@@ -110,6 +110,46 @@ const notificationController = {
     } catch (error) {
       console.error("Error sending VIP purchase notification:", error);
     }
+  },
+
+  // New function to send a notification when a user comments on a post
+  sendCommentNotification: async (postAuthorId, commentAuthorId, postId, commentId) => {
+    try {
+      const newNotification = new Notification({
+        sender: commentAuthorId,
+        receiver: postAuthorId,
+        notificationType: "newComment",
+        message: "Someone commented on your post",
+        relatedPost: postId,
+        relatedComment: commentId
+      });
+
+      const savedNotification = await newNotification.save();
+      return savedNotification;
+    } catch (error) {
+      console.error("Error creating comment notification:", error);
+      throw error;
+    }
+  },
+
+  // New function to send a notification when a user is mentioned in a comment
+  sendMentionNotification: async (mentionedUserId, mentioningUserId, postId, commentId) => {
+    try {
+      const newNotification = new Notification({
+        sender: mentioningUserId,
+        receiver: mentionedUserId,
+        notificationType: "mentionedInComment",
+        message: "You were mentioned in a comment",
+        relatedPost: postId,
+        relatedComment: commentId
+      });
+
+      const savedNotification = await newNotification.save();
+      return savedNotification;
+    } catch (error) {
+      console.error("Error creating mention notification:", error);
+      throw error;
+    }
   }
 };
 
