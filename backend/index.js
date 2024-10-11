@@ -31,7 +31,15 @@ const notificationRouter = require("./routes/notificationRouter.js");
 const saleRouter = require("./routes/saleRouter.js");
 const adminRouter = require("./routes/adminRouter.js");
 
+const examRouter = require("./routes/examRouter.js");
+const subjectRouter = require("./routes/subjectRouter.js");
+const sessionRouter = require("./routes/sessionRouter.js");
+const postRouter = require("./routes/postRouter.js");
+const commentRouter = require("./routes/commentRouter.js");
+const userAdmissionRouter = require("./routes/userAdmissionRouter.js");
+
 const { authMiddleware, adminMiddleware } = require("./middleware/authMiddleware.js");
+// tysm คืนนี้ไปร้านไหน
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/club", clubRouter);
@@ -39,6 +47,15 @@ app.use("/api/v1/invite", inviteRouter);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/sale", saleRouter);
 app.use("/api/v1/admin", authMiddleware, adminMiddleware, adminRouter);
+
+// tysm admission
+app.use("/api/v2/users", userAdmissionRouter);
+app.use("/api/v2/exams", examRouter);
+app.use("/api/v2/subjects", subjectRouter);
+app.use("/api/v2/sessions", sessionRouter);
+app.use("/api/v2/posts", postRouter);
+app.use("/api/v2/comments", commentRouter);
+
 
 // Scheduled task
 const { scheduleClubReset } = require('./scheduledTasks');
