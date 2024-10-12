@@ -2,7 +2,7 @@ const Exam = require('../models/exam.model');
 const Subject = require('../models/subject.model');
 const Session = require('../models/session.model');
 
-exports.getExams = async (req, res) => {
+exports.getAllExams = async (req, res) => {
   try {
     const exams = await Exam.find().populate('subjects');
     res.status(200).json(exams);
@@ -92,9 +92,9 @@ exports.getSubjects = async (req, res) => {
 exports.createSession = async (req, res) => {
   try {
     const { examId, subjectId } = req.params;
-    const { name, date } = req.body;
+    const { name } = req.body;
     
-    if (!name || !date) {
+    if (!name) {
       return res.status(400).json({ message: "Session name and date are required" });
     }
 
@@ -111,8 +111,7 @@ exports.createSession = async (req, res) => {
     const newSession = new Session({
       exam: examId,
       subject: subjectId,
-      name,
-      date: new Date(date)
+      name
     });
     const savedSession = await newSession.save();
 
@@ -126,11 +125,28 @@ exports.createSession = async (req, res) => {
 exports.getSessions = async (req, res) => {
   try {
     const { examId, subjectId } = req.params;
+
+    // Validate examId
+    const exam = await Exam.findById(examId);
+    if (!exam) {
+      return res.status(404).json({ message: "Exam not found" });
+    }
+
+    // Validate subjectId
+    const subject = await Subject.findOne({ _id: subjectId, exam: examId });
+    if (!subject) {
+      return res.status(404).json({ message: "Subject not found for this exam" });
+    }
+
+    // Fetch sessions
     const sessions = await Session.find({ exam: examId, subject: subjectId }).sort({ date: 1 });
     
     res.status(200).json(sessions);
   } catch (error) {
     console.error("Error fetching sessions:", error);
+    if (error.kind === 'ObjectId') {
+      return res.status(400).json({ message: "Invalid exam or subject ID" });
+    }
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };

@@ -1,5 +1,5 @@
-const Post = require('../models/Post');
-const User = require('../models/User');
+const Post = require('../models/post.model');
+const User = require('../models/user.model');
 const ExamSession = require('../models/session.model');
 
 exports.getPosts = async (req, res) => {

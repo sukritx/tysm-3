@@ -1,62 +1,18 @@
-const User = require('../models/User');
-const Post = require('../models/Post');
-const Comment = require('../models/Comment');
-
-exports.getUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await User.findById(id).select('-password');
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.status(200).json(user);
-  } catch (error) {
-    console.error("Error fetching user:", error);
-    res.status(500).json({ message: "Internal server error", error: error.message });
-  }
-};
-
-exports.updateUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { username, email, profilePicture } = req.body;
-
-    const user = await User.findById(id);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Check if the authenticated user is updating their own profile
-    if (req.userId !== id) {
-      return res.status(403).json({ message: "Not authorized to update this user" });
-    }
-
-    user.username = username || user.username;
-    user.email = email || user.email;
-    user.profilePicture = profilePicture || user.profilePicture;
-
-    const updatedUser = await user.save();
-    res.status(200).json(updatedUser);
-  } catch (error) {
-    console.error("Error updating user:", error);
-    res.status(500).json({ message: "Internal server error", error: error.message });
-  }
-};
+const { User, Account } = require('../models/user.model');
+const Post = require('../models/post.model');
+const Comment = require('../models/comment.model');
 
 exports.getActivityHistory = async (req, res) => {
   try {
-    const { id } = req.params;
-    const user = await User.findById(id);
+    const { username } = req.params;
+    const user = await User.findOne({ username });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const posts = await Post.find({ user: id }).sort({ createdAt: -1 }).limit(10);
-    const comments = await Comment.find({ user: id }).sort({ createdAt: -1 }).limit(10);
+    const posts = await Post.find({ user: user._id }).sort({ createdAt: -1 }).limit(10);
+    const comments = await Comment.find({ user: user._id }).sort({ createdAt: -1 }).limit(10);
 
     const activity = [
       ...posts.map(post => ({ type: 'post', data: post, createdAt: post.createdAt })),
@@ -72,8 +28,8 @@ exports.getActivityHistory = async (req, res) => {
 
 exports.getCommitCalendar = async (req, res) => {
   try {
-    const { id } = req.params;
-    const user = await User.findById(id);
+    const { username } = req.params;
+    const user = await User.findOne({ username });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -82,8 +38,8 @@ exports.getCommitCalendar = async (req, res) => {
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-    const posts = await Post.find({ user: id, createdAt: { $gte: oneYearAgo } });
-    const comments = await Comment.find({ user: id, createdAt: { $gte: oneYearAgo } });
+    const posts = await Post.find({ user: user._id, createdAt: { $gte: oneYearAgo } });
+    const comments = await Comment.find({ user: user._id, createdAt: { $gte: oneYearAgo } });
 
     const commitCalendar = {};
 

@@ -1,13 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const examController = require('../../../controllers/api/v2/examController');
+const examController = require('../controllers/examController');
+const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
 
-router.get('/', examController.getExams);
-router.post('/', examController.createExam);
+// Apply adminMiddleware to admin-only routes
+router.post('/create-exam', authMiddleware, adminMiddleware, examController.createExam);
+router.post('/:id/create-subject', authMiddleware, adminMiddleware, examController.createSubject);
+router.post('/:examId/:subjectId/create-session', authMiddleware, adminMiddleware, examController.createSession);
+
+// Other exam routes (no adminMiddleware)
+router.get('/', examController.getAllExams);
 router.get('/:id', examController.getExam);
-router.post('/:id/subjects', examController.createSubject);
 router.get('/:id/subjects', examController.getSubjects);
-router.post('/:examId/subjects/:subjectId/sessions', examController.createSession);
-router.get('/:examId/subjects/:subjectId/sessions', examController.getSessions);
+router.get('/:examId/:subjectId/sessions', examController.getSessions);
 
 module.exports = router;

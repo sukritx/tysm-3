@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const commentController = require('../../../controllers/api/v2/commentController');
+const commentController = require('../controllers/commentController');
 
 router.post('/', commentController.createComment);
 router.put('/:id', commentController.updateComment);
