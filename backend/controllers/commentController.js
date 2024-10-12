@@ -1,12 +1,16 @@
 const Comment = require('../models/comment.model');
 const Post = require('../models/post.model');
-const User = require('../models/user.model');
+const { User } = require('../models/user.model');  // Change this line
 const { notificationController } = require('./notificationController');
 
 exports.createComment = async (req, res) => {
   try {
     const { postId, text, image } = req.body;
-    const userId = req.userId; // Assuming you have middleware that sets userId
+    const userId = req.user._id; // Change this line
+
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
 
     const post = await Post.findById(postId);
     if (!post) {
@@ -23,7 +27,7 @@ exports.createComment = async (req, res) => {
     const savedComment = await newComment.save();
 
     // Send notification to post author
-    if (post.user.toString() !== userId) {
+    if (post.user.toString() !== userId.toString()) {
       await notificationController.sendCommentNotification(post.user, userId, postId, savedComment._id);
     }
 
@@ -36,7 +40,7 @@ exports.createComment = async (req, res) => {
         const username = mention.slice(1); // Remove the @ symbol
         const mentionedUser = await User.findOne({ username });
         
-        if (mentionedUser && mentionedUser._id.toString() !== userId) {
+        if (mentionedUser && mentionedUser._id.toString() !== userId.toString()) {
           await notificationController.sendMentionNotification(mentionedUser._id, userId, postId, savedComment._id);
         }
       }
