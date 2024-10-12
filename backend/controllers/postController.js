@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Post = require('../models/post.model');
 const User = require('../models/user.model');
 const ExamSession = require('../models/session.model');
@@ -185,28 +186,54 @@ exports.getVotingHistory = async (req, res) => {
 
 exports.filterPosts = async (req, res) => {
   try {
-    const { examId, subjectId, sessionId } = req.query;
+    const { examId, subjectId, sessionId, page = 1, limit = 10 } = req.query;
 
     let query = {};
+
+    // Input validation
+    if (sessionId && !mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: "Invalid sessionId" });
+    }
+    if (subjectId && !mongoose.Types.ObjectId.isValid(subjectId)) {
+      return res.status(400).json({ message: "Invalid subjectId" });
+    }
+    if (examId && !mongoose.Types.ObjectId.isValid(examId)) {
+      return res.status(400).json({ message: "Invalid examId" });
+    }
 
     if (sessionId) {
       query.examSession = sessionId;
     } else if (subjectId) {
-      const sessions = await ExamSession.find({ subject: subjectId });
+      const sessions = await ExamSession.find({ subject: subjectId }).select('_id');
       query.examSession = { $in: sessions.map(session => session._id) };
     } else if (examId) {
-      const sessions = await ExamSession.find({ exam: examId });
+      const sessions = await ExamSession.find({ exam: examId }).select('_id');
       query.examSession = { $in: sessions.map(session => session._id) };
     }
 
-    const posts = await Post.find(query)
-      .populate('user', 'username')
-      .populate('examSession')
-      .sort({ createdAt: -1 });
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort: { createdAt: -1 },
+      populate: [
+        { path: 'user', select: 'username' },
+        { path: 'examSession', select: 'name date' }
+      ]
+    };
 
-    res.status(200).json(posts);
+    const posts = await Post.paginate(query, options);
+
+    res.status(200).json({
+      posts: posts.docs,
+      totalPages: posts.totalPages,
+      currentPage: posts.page,
+      totalPosts: posts.totalDocs
+    });
   } catch (error) {
     console.error("Error filtering posts:", error);
+    if (error instanceof mongoose.Error.CastError) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
