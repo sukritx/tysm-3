@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "../components/ui/badge";
 import ReactGA from 'react-ga4';
 import { ScrollArea } from "../components/ui/scroll-area";
+import ReactCalendarHeatmap from 'react-calendar-heatmap';
+import 'react-calendar-heatmap/dist/styles.css';
+import styles from './ProfilePage.module.css';
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -27,6 +30,7 @@ const ProfilePage = () => {
   const [coinBalance, setCoinBalance] = useState(0);
   const [friendsList, setFriendsList] = useState([]);
   const [showFriendsDialog, setShowFriendsDialog] = useState(false);
+  const [commitCalendar, setCommitCalendar] = useState({});
 
   const isOwnProfile = auth.user && auth.user.username === username;
 
@@ -105,10 +109,36 @@ const ProfilePage = () => {
       }
     };
 
+    const fetchCommitCalendar = async () => {
+      try {
+        const token = auth.getToken();
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/users/${username}/commit-calendar`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCommitCalendar(response.data);
+        ReactGA.event({
+          category: 'Profile',
+          action: 'Fetch Commit Calendar',
+          label: 'Success'
+        });
+      } catch (err) {
+        console.error('Error fetching commit calendar:', err);
+        ReactGA.event({
+          category: 'Profile',
+          action: 'Fetch Commit Calendar',
+          label: 'Error'
+        });
+      }
+    };
+
     if (auth.user) {
       fetchProfileData();
       fetchUserData();
       fetchFriendsList();
+      fetchCommitCalendar();
     } else {
       setLoading(false);
       setError('User not authenticated');
@@ -354,6 +384,48 @@ const ProfilePage = () => {
     );
   };
 
+  const renderCommitCalendar = () => {
+    const today = new Date();
+    const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+
+    const calendarData = Object.entries(commitCalendar).map(([date, count]) => ({
+      date,
+      count
+    }));
+
+    const getColor = (count) => {
+      if (!count) return 'color-empty';
+      if (count <= 2) return 'color-scale-1';
+      if (count <= 5) return 'color-scale-2';
+      if (count <= 10) return 'color-scale-3';
+      return 'color-scale-4';
+    };
+
+    return (
+      <Card className={`mt-6 ${styles.heatmap}`}>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Activity Calendar</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ReactCalendarHeatmap
+            startDate={oneYearAgo}
+            endDate={today}
+            values={calendarData}
+            classForValue={(value) => {
+              return value ? getColor(value.count) : 'color-empty';
+            }}
+            titleForValue={(value) => {
+              if (!value) {
+                return 'No activity';
+              }
+              return `${value.count} activities on ${value.date}`;
+            }}
+          />
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
   if (error) return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>;
   if (!profileData) return <div className="flex justify-center items-center h-screen">Profile not found</div>;
@@ -499,6 +571,7 @@ const ProfilePage = () => {
             )}
           </div>
 
+          {renderCommitCalendar()}
           {isVip && renderVipStatus()}
           {isOwnProfile && (isVip ? renderProfileViewers() : renderUnlockProfileViewers())}
           {renderTodaysClubs()}

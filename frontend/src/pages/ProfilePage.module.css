@@ -1,0 +1,19 @@
+.heatmap :global(.react-calendar-heatmap .color-empty) {
+  fill: #ebedf0;
+}
+
+.heatmap :global(.react-calendar-heatmap .color-scale-1) {
+  fill: rgba(0, 255, 0, 0.2);
+}
+
+.heatmap :global(.react-calendar-heatmap .color-scale-2) {
+  fill: rgba(0, 255, 0, 0.4);
+}
+
+.heatmap :global(.react-calendar-heatmap .color-scale-3) {
+  fill: rgba(0, 255, 0, 0.6);
+}
+
+.heatmap :global(.react-calendar-heatmap .color-scale-4) {
+  fill: rgba(0, 255, 0, 0.8);
+}
