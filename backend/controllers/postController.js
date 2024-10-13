@@ -16,8 +16,12 @@ const s3Client = new S3Client({
     forcePathStyle: true
   });
 
-exports.getPosts = async (req, res) => {
+exports.getAuthenticatedPosts = async (req, res) => {
   try {
+
+    // Try to get userId from different possible locations
+    const userId = req.userId;
+
     const posts = await Post.find()
       .populate('user', 'username')
       .populate({
@@ -36,16 +40,26 @@ exports.getPosts = async (req, res) => {
     // Create a map of user IDs to avatars
     const avatarMap = new Map(accounts.map(account => [account.userId.toString(), account.avatar]));
 
-    // Add avatar to each post
-    const postsWithAvatars = posts.map(post => ({
-      ...post.toObject(),
-      user: {
-        ...post.user.toObject(),
-        avatar: avatarMap.get(post.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
-      }
-    }));
+    const postsWithVoteStatus = posts.map(post => {
+      const postObject = post.toObject();
+      const userVoteStatus = userId ? {
+        upvoted: post.upvotes.includes(userId),
+        downvoted: post.downvotes.includes(userId)
+      } : null;
 
-    res.status(200).json(postsWithAvatars);
+      console.log(`Post ${post._id} vote status:`, userVoteStatus);
+
+      return {
+        ...postObject,
+        user: {
+          ...postObject.user,
+          avatar: avatarMap.get(postObject.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
+        },
+        userVoteStatus
+      };
+    });
+
+    res.status(200).json(postsWithVoteStatus);
   } catch (error) {
     console.error("Error fetching posts:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -161,23 +175,37 @@ exports.deletePost = async (req, res) => {
 exports.upvotePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.userId;
+    const userId = req.user._id;
 
     const post = await Post.findById(id);
-
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    if (post.upvotes.includes(userId)) {
-      post.upvotes = post.upvotes.filter(id => id.toString() !== userId);
+    const upvoteIndex = post.upvotes.indexOf(userId);
+    const downvoteIndex = post.downvotes.indexOf(userId);
+
+    if (upvoteIndex > -1) {
+      // User has already upvoted, so remove the upvote
+      post.upvotes = post.upvotes.filter(id => id.toString() !== userId.toString());
     } else {
+      // Add upvote
       post.upvotes.push(userId);
-      post.downvotes = post.downvotes.filter(id => id.toString() !== userId);
+      // Remove downvote if exists
+      if (downvoteIndex > -1) {
+        post.downvotes = post.downvotes.filter(id => id.toString() !== userId.toString());
+      }
     }
 
-    const updatedPost = await post.save();
-    res.status(200).json(updatedPost);
+    await post.save();
+
+    res.status(200).json({
+      ...post.toObject(),
+      userVoteStatus: {
+        upvoted: post.upvotes.includes(userId),
+        downvoted: post.downvotes.includes(userId)
+      }
+    });
   } catch (error) {
     console.error("Error upvoting post:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -187,23 +215,37 @@ exports.upvotePost = async (req, res) => {
 exports.downvotePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.userId;
+    const userId = req.user._id;
 
     const post = await Post.findById(id);
-
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    if (post.downvotes.includes(userId)) {
-      post.downvotes = post.downvotes.filter(id => id.toString() !== userId);
+    const downvoteIndex = post.downvotes.indexOf(userId);
+    const upvoteIndex = post.upvotes.indexOf(userId);
+
+    if (downvoteIndex > -1) {
+      // User has already downvoted, so remove the downvote
+      post.downvotes = post.downvotes.filter(id => id.toString() !== userId.toString());
     } else {
+      // Add downvote
       post.downvotes.push(userId);
-      post.upvotes = post.upvotes.filter(id => id.toString() !== userId);
+      // Remove upvote if exists
+      if (upvoteIndex > -1) {
+        post.upvotes = post.upvotes.filter(id => id.toString() !== userId.toString());
+      }
     }
 
-    const updatedPost = await post.save();
-    res.status(200).json(updatedPost);
+    await post.save();
+
+    res.status(200).json({
+      ...post.toObject(),
+      userVoteStatus: {
+        upvoted: post.upvotes.includes(userId),
+        downvoted: post.downvotes.includes(userId)
+      }
+    });
   } catch (error) {
     console.error("Error downvoting post:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -284,6 +326,45 @@ exports.filterPosts = async (req, res) => {
     if (error instanceof mongoose.Error.CastError) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+exports.getPublicPosts = async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .populate('user', 'username')
+      .populate({
+        path: 'examSession',
+        populate: [
+          { path: 'exam', select: 'name' },
+          { path: 'subject', select: 'name' }
+        ]
+      })
+      .sort({ createdAt: -1 });
+
+    // Fetch accounts for all users in the posts
+    const userIds = posts.map(post => post.user._id);
+    const accounts = await Account.find({ userId: { $in: userIds } }, 'userId avatar');
+
+    // Create a map of user IDs to avatars
+    const avatarMap = new Map(accounts.map(account => [account.userId.toString(), account.avatar]));
+
+    const publicPosts = posts.map(post => {
+      const postObject = post.toObject();
+      return {
+        ...postObject,
+        user: {
+          ...postObject.user,
+          avatar: avatarMap.get(postObject.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
+        },
+        // Don't include userVoteStatus for public posts
+      };
+    });
+
+    res.status(200).json(publicPosts);
+  } catch (error) {
+    console.error("Error fetching public posts:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };

@@ -3,7 +3,8 @@ const router = express.Router();
 const { authMiddleware } = require('../middleware/authMiddleware');
 const postController = require('../controllers/postController');
 
-router.get('/', postController.getPosts);
+router.get('/public', postController.getPublicPosts);
+router.get('/authenticated', authMiddleware, postController.getAuthenticatedPosts);
 router.post('/', authMiddleware, postController.createPost);
 router.get('/filter', postController.filterPosts);
 router.get('/:id', postController.getPost);

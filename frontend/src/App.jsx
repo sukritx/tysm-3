@@ -5,6 +5,7 @@ import PrivateRoute from './PrivateRoute';
 import AdminRoute from './AdminRoute';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
+import Tonight from './pages/Tonight';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Club from './pages/Club';
@@ -31,6 +32,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/tonight" element={<Tonight />} />
             <Route path="/invite/:inviteLink" element={<InviteCard />} />
             <Route element={<PrivateRoute />}>
               <Route path="/club/:id" element={<Club />} />
