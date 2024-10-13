@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Post = require('../models/post.model');
-const User = require('../models/user.model');
+const { User, Account } = require('../models/user.model');
 const ExamSession = require('../models/session.model');
 const { fileUpload } = require('../middleware/file-upload');
 const { S3Client, DeleteObjectCommand } = require("@aws-sdk/client-s3");
@@ -20,9 +20,32 @@ exports.getPosts = async (req, res) => {
   try {
     const posts = await Post.find()
       .populate('user', 'username')
-      .populate('examSession')
+      .populate({
+        path: 'examSession',
+        populate: [
+          { path: 'exam', select: 'name' },
+          { path: 'subject', select: 'name' }
+        ]
+      })
       .sort({ createdAt: -1 });
-    res.status(200).json(posts);
+
+    // Fetch accounts for all users in the posts
+    const userIds = posts.map(post => post.user._id);
+    const accounts = await Account.find({ userId: { $in: userIds } }, 'userId avatar');
+
+    // Create a map of user IDs to avatars
+    const avatarMap = new Map(accounts.map(account => [account.userId.toString(), account.avatar]));
+
+    // Add avatar to each post
+    const postsWithAvatars = posts.map(post => ({
+      ...post.toObject(),
+      user: {
+        ...post.user.toObject(),
+        avatar: avatarMap.get(post.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
+      }
+    }));
+
+    res.status(200).json(postsWithAvatars);
   } catch (error) {
     console.error("Error fetching posts:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
