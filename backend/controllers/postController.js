@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Post = require('../models/post.model');
 const { User, Account } = require('../models/user.model');
+const Comment = require('../models/comment.model');
 const ExamSession = require('../models/session.model');
 const { fileUpload } = require('../middleware/file-upload');
 const { S3Client, DeleteObjectCommand } = require("@aws-sdk/client-s3");
@@ -18,20 +19,92 @@ const s3Client = new S3Client({
 
 exports.getAuthenticatedPosts = async (req, res) => {
   try {
-
-    // Try to get userId from different possible locations
     const userId = req.userId;
 
-    const posts = await Post.find()
-      .populate('user', 'username')
-      .populate({
-        path: 'examSession',
-        populate: [
-          { path: 'exam', select: 'name' },
-          { path: 'subject', select: 'name' }
-        ]
-      })
-      .sort({ createdAt: -1 });
+    const posts = await Post.aggregate([
+      {
+        $lookup: {
+          from: 'comments',
+          localField: '_id',
+          foreignField: 'post',
+          as: 'comments'
+        }
+      },
+      {
+        $addFields: {
+          commentCount: { $size: "$comments" }
+        }
+      },
+      {
+        $project: {
+          comments: 0 // Remove the comments array from the result
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      {
+        $unwind: '$user'
+      },
+      {
+        $lookup: {
+          from: 'examsessions',
+          localField: 'examSession',
+          foreignField: '_id',
+          as: 'examSession'
+        }
+      },
+      {
+        $unwind: {
+          path: '$examSession',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'exams',
+          localField: 'examSession.exam',
+          foreignField: '_id',
+          as: 'examSession.exam'
+        }
+      },
+      {
+        $unwind: {
+          path: '$examSession.exam',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'subjects',
+          localField: 'examSession.subject',
+          foreignField: '_id',
+          as: 'examSession.subject'
+        }
+      },
+      {
+        $unwind: {
+          path: '$examSession.subject',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          userVoteStatus: {
+            upvoted: { $in: [new mongoose.Types.ObjectId(userId), "$upvotes"] },
+            downvoted: { $in: [new mongoose.Types.ObjectId(userId), "$downvotes"] }
+          }
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      }
+    ]);
 
     // Fetch accounts for all users in the posts
     const userIds = posts.map(post => post.user._id);
@@ -40,28 +113,17 @@ exports.getAuthenticatedPosts = async (req, res) => {
     // Create a map of user IDs to avatars
     const avatarMap = new Map(accounts.map(account => [account.userId.toString(), account.avatar]));
 
-    const postsWithVoteStatus = posts.map(post => {
-      const postObject = post.toObject();
-      const userVoteStatus = userId ? {
-        upvoted: post.upvotes.includes(userId),
-        downvoted: post.downvotes.includes(userId)
-      } : null;
+    const postsWithUserData = posts.map(post => ({
+      ...post,
+      user: {
+        ...post.user,
+        avatar: avatarMap.get(post.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
+      }
+    }));
 
-      console.log(`Post ${post._id} vote status:`, userVoteStatus);
-
-      return {
-        ...postObject,
-        user: {
-          ...postObject.user,
-          avatar: avatarMap.get(postObject.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
-        },
-        userVoteStatus
-      };
-    });
-
-    res.status(200).json(postsWithVoteStatus);
+    res.status(200).json(postsWithUserData);
   } catch (error) {
-    console.error("Error fetching posts:", error);
+    console.error("Error fetching authenticated posts:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
@@ -107,15 +169,41 @@ exports.createPost = async (req, res) => {
 exports.getPost = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.userId;
+
     const post = await Post.findById(id)
       .populate('user', 'username')
-      .populate('examSession');
+      .populate({
+        path: 'examSession',
+        populate: [
+          { path: 'exam', select: 'name' },
+          { path: 'subject', select: 'name' }
+        ]
+      });
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    res.status(200).json(post);
+    const postObject = post.toObject();
+    postObject.userVoteStatus = {
+      upvoted: post.upvotes.includes(userId),
+      downvoted: post.downvotes.includes(userId)
+    };
+
+    // Calculate comment count
+    const commentCount = await Comment.countDocuments({ post: id });
+
+    // Fetch user's avatar
+    const account = await Account.findOne({ userId: post.user._id }, 'avatar');
+
+    postObject.commentCount = commentCount;
+    postObject.user = {
+      ...postObject.user,
+      avatar: account?.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
+    };
+
+    res.status(200).json(postObject);
   } catch (error) {
     console.error("Error fetching post:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -332,16 +420,82 @@ exports.filterPosts = async (req, res) => {
 
 exports.getPublicPosts = async (req, res) => {
   try {
-    const posts = await Post.find()
-      .populate('user', 'username')
-      .populate({
-        path: 'examSession',
-        populate: [
-          { path: 'exam', select: 'name' },
-          { path: 'subject', select: 'name' }
-        ]
-      })
-      .sort({ createdAt: -1 });
+    const posts = await Post.aggregate([
+      {
+        $lookup: {
+          from: 'comments',
+          localField: '_id',
+          foreignField: 'post',
+          as: 'comments'
+        }
+      },
+      {
+        $addFields: {
+          commentCount: { $size: "$comments" }
+        }
+      },
+      {
+        $project: {
+          comments: 0 // Remove the comments array from the result
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      {
+        $unwind: '$user'
+      },
+      {
+        $lookup: {
+          from: 'examsessions',
+          localField: 'examSession',
+          foreignField: '_id',
+          as: 'examSession'
+        }
+      },
+      {
+        $unwind: {
+          path: '$examSession',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'exams',
+          localField: 'examSession.exam',
+          foreignField: '_id',
+          as: 'examSession.exam'
+        }
+      },
+      {
+        $unwind: {
+          path: '$examSession.exam',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'subjects',
+          localField: 'examSession.subject',
+          foreignField: '_id',
+          as: 'examSession.subject'
+        }
+      },
+      {
+        $unwind: {
+          path: '$examSession.subject',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      }
+    ]);
 
     // Fetch accounts for all users in the posts
     const userIds = posts.map(post => post.user._id);
@@ -351,12 +505,12 @@ exports.getPublicPosts = async (req, res) => {
     const avatarMap = new Map(accounts.map(account => [account.userId.toString(), account.avatar]));
 
     const publicPosts = posts.map(post => {
-      const postObject = post.toObject();
+      // Remove the toObject() call
       return {
-        ...postObject,
+        ...post,
         user: {
-          ...postObject.user,
-          avatar: avatarMap.get(postObject.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
+          ...post.user,
+          avatar: avatarMap.get(post.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
         },
         // Don't include userVoteStatus for public posts
       };
@@ -365,6 +519,47 @@ exports.getPublicPosts = async (req, res) => {
     res.status(200).json(publicPosts);
   } catch (error) {
     console.error("Error fetching public posts:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+exports.getPublicPost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const post = await Post.findById(id)
+      .populate('user', 'username')
+      .populate({
+        path: 'examSession',
+        populate: [
+          { path: 'exam', select: 'name' },
+          { path: 'subject', select: 'name' }
+        ]
+      });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Calculate comment count
+    const commentCount = await Comment.countDocuments({ post: id });
+
+    // Fetch user's avatar
+    const account = await Account.findOne({ userId: post.user._id }, 'avatar');
+
+    const postObject = post.toObject();
+    postObject.commentCount = commentCount;
+    postObject.user = {
+      ...postObject.user,
+      avatar: account?.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
+    };
+
+    // Remove sensitive information for public view
+    delete postObject.upvotes;
+    delete postObject.downvotes;
+
+    res.status(200).json(postObject);
+  } catch (error) {
+    console.error("Error fetching public post:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };

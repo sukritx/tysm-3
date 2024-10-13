@@ -18,6 +18,7 @@ import { Toaster } from 'react-hot-toast';
 import Sales from './pages/Sales';
 import AdminDashboard from './pages/AdminDashboard';
 import AddCoin from './pages/AddCoin';
+import PostPage from './pages/PostPage';
 
 import ReactGA from 'react-ga4';
 
@@ -30,6 +31,7 @@ function App() {
           <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/post/:id" element={<PostPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/tonight" element={<Tonight />} />

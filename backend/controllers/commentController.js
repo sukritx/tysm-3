@@ -1,6 +1,6 @@
 const Comment = require('../models/comment.model');
 const Post = require('../models/post.model');
-const { User } = require('../models/user.model');  // Change this line
+const { User, Account } = require('../models/user.model');  // Change this line
 const { notificationController } = require('./notificationController');
 const { fileUpload } = require('../middleware/file-upload');
 const { S3Client, DeleteObjectCommand } = require("@aws-sdk/client-s3");
@@ -189,7 +189,21 @@ exports.getComments = async (req, res) => {
       .populate('user', 'username')
       .sort({ createdAt: -1 });
 
-    res.status(200).json(comments);
+    // Fetch avatars for all users who commented
+    const userIds = comments.map(comment => comment.user._id);
+    const accounts = await Account.find({ userId: { $in: userIds } }, 'userId avatar');
+
+    // Create a map of user IDs to avatars
+    const avatarMap = new Map(accounts.map(account => [account.userId.toString(), account.avatar]));
+
+    // Add avatar to each comment
+    const commentsWithAvatars = comments.map(comment => {
+      const commentObj = comment.toObject();
+      commentObj.user.avatar = avatarMap.get(comment.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png';
+      return commentObj;
+    });
+
+    res.status(200).json(commentsWithAvatars);
   } catch (error) {
     console.error("Error fetching comments:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });

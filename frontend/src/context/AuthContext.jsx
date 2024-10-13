@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
@@ -27,18 +28,22 @@ export const AuthProvider = ({ children }) => {
             const userData = response.data.user;
             setUser(userData);
             localStorage.setItem('user', JSON.stringify(userData));
+            setIsAuthenticated(true);
           } else {
             console.warn('User data not found in response. Using stored user data.');
             setUser(JSON.parse(storedUser));
+            setIsAuthenticated(true);
           }
         } catch (error) {
           console.error('Error verifying token:', error);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
+          setIsAuthenticated(false);
         }
       } else {
         setUser(null);
+        setIsAuthenticated(false);
       }
       setLoading(false);
     };
@@ -79,6 +84,7 @@ export const AuthProvider = ({ children }) => {
           navigate('/');
         }
 
+        setIsAuthenticated(true);
         return true;
       } else {
         console.error('Login failed: No token in response');
@@ -94,6 +100,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setIsAuthenticated(false);
     // console.log('Logged out, token and user removed from storage');
   };
 
@@ -133,7 +140,7 @@ export const AuthProvider = ({ children }) => {
   }, [getToken, user]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, getToken, updateUser, checkAuth, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, getToken, updateUser, checkAuth, loading }}>
       {children}
     </AuthContext.Provider>
   );
