@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from '../context/AuthContext';
 import SecondaryNavbar from '../components/SecondaryNavBar';
-import { MessageSquare, Send, ArrowUp, ArrowDown } from "lucide-react";
+import { MessageSquare, Share2, ArrowUp, ArrowDown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { timeAgo } from '../utils/timeAgo';
+import toast from 'react-hot-toast';
 
 const PostCard = ({ post, onVote }) => {
   const { getToken, isAuthenticated } = useAuth();
@@ -62,7 +63,11 @@ const PostCard = ({ post, onVote }) => {
         examSession: prevPost.examSession
       }));
       
-      onVote(post._id, response.data);
+      onVote(post._id, {
+        ...response.data,
+        user: localPost.user,
+        examSession: localPost.examSession
+      });
     } catch (error) {
       console.error(`Error ${voteType}ing post:`, error);
     }
@@ -92,6 +97,22 @@ const PostCard = ({ post, onVote }) => {
     navigate(`/post/${post._id}`);
   };
 
+  const handleCommentClick = (e) => {
+    e.stopPropagation();
+    navigate(`/post/${post._id}`);
+  };
+
+  const handleShareClick = (e) => {
+    e.stopPropagation();
+    const postUrl = `${window.location.origin}/post/${post._id}`;
+    navigator.clipboard.writeText(postUrl).then(() => {
+      toast.success('Link copied to clipboard!');
+    }, (err) => {
+      console.error('Could not copy text: ', err);
+      toast.error('Failed to copy link');
+    });
+  };
+
   return (
     <div 
       className="p-4 bg-background !bg-background text-foreground shadow-md rounded-lg mt-4 border border-border cursor-pointer"
@@ -110,6 +131,7 @@ const PostCard = ({ post, onVote }) => {
           <Link 
             to={`/${localPost.user?.username}`} 
             className="text-xs text-primary hover:text-primary/80 transition-colors mt-1"
+            onClick={(e) => e.stopPropagation()}
           >
             @{localPost.user?.username || 'Anonymous'}
           </Link>
@@ -136,16 +158,16 @@ const PostCard = ({ post, onVote }) => {
         <div className="flex items-center space-x-4">
           <button 
             className="flex items-center space-x-2 text-muted-foreground text-base hover:text-foreground transition-colors"
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleCommentClick}
           >
             <MessageSquare className="w-6 h-6" />
             <span>{commentCount}</span>
           </button>
           <button 
             className="flex items-center space-x-2 text-muted-foreground text-base hover:text-foreground transition-colors"
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleShareClick}
           >
-            <Send className="w-6 h-6" />
+            <Share2 className="w-6 h-6" />
           </button>
         </div>
         <div className="flex items-center space-x-3">

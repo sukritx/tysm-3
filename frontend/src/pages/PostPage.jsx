@@ -3,8 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from '../context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, Send, ArrowUp, ArrowDown } from "lucide-react";
+import { MessageSquare, Share2, ArrowUp, ArrowDown } from "lucide-react";
 import { timeAgo } from '../utils/timeAgo';
+import toast from 'react-hot-toast';
 
 const PostPage = () => {
   const { id } = useParams();
@@ -111,6 +112,16 @@ const PostPage = () => {
     }
   };
 
+  const handleShareClick = () => {
+    const postUrl = `${window.location.origin}/post/${id}`;
+    navigator.clipboard.writeText(postUrl).then(() => {
+      toast.success('Link copied to clipboard!');
+    }, (err) => {
+      console.error('Could not copy text: ', err);
+      toast.error('Failed to copy link');
+    });
+  };
+
   const getUpvoteButtonClass = () => {
     if (voteStatus?.upvoted) {
       return 'text-green-500 bg-green-100';
@@ -182,8 +193,11 @@ const PostPage = () => {
               <MessageSquare className="w-6 h-6" />
               <span>{comments.length}</span>
             </button>
-            <button className="flex items-center space-x-2 text-muted-foreground text-base hover:text-foreground transition-colors">
-              <Send className="w-6 h-6" />
+            <button 
+              className="flex items-center space-x-2 text-muted-foreground text-base hover:text-foreground transition-colors"
+              onClick={handleShareClick}
+            >
+              <Share2 className="w-6 h-6" />
             </button>
           </div>
           <div className="flex items-center space-x-3">
