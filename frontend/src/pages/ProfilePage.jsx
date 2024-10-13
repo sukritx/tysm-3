@@ -12,6 +12,8 @@ import { Badge } from "../components/ui/badge";
 import ReactGA from 'react-ga4';
 import { ScrollArea } from "../components/ui/scroll-area";
 import ReactCalendarHeatmap from 'react-calendar-heatmap';
+import { Tooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
 import 'react-calendar-heatmap/dist/styles.css';
 import styles from './ProfilePage.module.css';
 
@@ -406,21 +408,23 @@ const ProfilePage = () => {
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Activity Calendar</CardTitle>
         </CardHeader>
-        <CardContent>
-          <ReactCalendarHeatmap
-            startDate={oneYearAgo}
-            endDate={today}
-            values={calendarData}
-            classForValue={(value) => {
-              return value ? getColor(value.count) : 'color-empty';
-            }}
-            titleForValue={(value) => {
-              if (!value) {
-                return 'No activity';
-              }
-              return `${value.count} activities on ${value.date}`;
-            }}
-          />
+        <CardContent className="overflow-x-auto">
+          <div className="min-w-[750px]">
+            <ReactCalendarHeatmap
+              startDate={oneYearAgo}
+              endDate={today}
+              values={calendarData}
+              classForValue={(value) => {
+                return value ? getColor(value.count) : 'color-empty';
+              }}
+              titleForValue={(value) => {
+                if (!value) {
+                  return 'No activity';
+                }
+                return `${value.count} activities on ${value.date}`;
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
     );
@@ -454,11 +458,16 @@ const ProfilePage = () => {
                 </span>
               )}
             </Avatar>
-            <div className="flex flex-col">
+            <div className="flex flex-col overflow-hidden">
               <div className="flex items-center">
-                <CardTitle className="text-2xl font-bold mr-2">
+                <CardTitle 
+                  className="text-2xl font-bold mr-2 truncate max-w-[200px]"
+                  data-tooltip-id="username-tooltip"
+                  data-tooltip-content={`@${username}`}
+                >
                   @{username}
                 </CardTitle>
+                <Tooltip id="username-tooltip" place="top" />
                 {isVip && (
                   <Badge variant="secondary" className="bg-yellow-400 text-black text-xs">
                     <Star className="mr-1 h-3 w-3" /> VIP
