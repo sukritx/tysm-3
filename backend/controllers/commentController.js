@@ -141,15 +141,24 @@ exports.upvoteComment = async (req, res) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    if (comment.upvotes.includes(userId)) {
-      comment.upvotes = comment.upvotes.filter(id => id.toString() !== userId);
+    const upvoteIndex = comment.upvotes.indexOf(userId);
+    const downvoteIndex = comment.downvotes.indexOf(userId);
+
+    if (upvoteIndex > -1) {
+      // User has already upvoted, so remove the upvote
+      comment.upvotes.splice(upvoteIndex, 1);
     } else {
+      // Add upvote
       comment.upvotes.push(userId);
-      comment.downvotes = comment.downvotes.filter(id => id.toString() !== userId);
+      // Remove downvote if exists
+      if (downvoteIndex > -1) {
+        comment.downvotes.splice(downvoteIndex, 1);
+      }
     }
 
-    const updatedComment = await comment.save();
-    res.status(200).json(updatedComment);
+    await comment.save();
+
+    res.status(200).json(comment);
   } catch (error) {
     console.error("Error upvoting comment:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -167,15 +176,24 @@ exports.downvoteComment = async (req, res) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    if (comment.downvotes.includes(userId)) {
-      comment.downvotes = comment.downvotes.filter(id => id.toString() !== userId);
+    const downvoteIndex = comment.downvotes.indexOf(userId);
+    const upvoteIndex = comment.upvotes.indexOf(userId);
+
+    if (downvoteIndex > -1) {
+      // User has already downvoted, so remove the downvote
+      comment.downvotes.splice(downvoteIndex, 1);
     } else {
+      // Add downvote
       comment.downvotes.push(userId);
-      comment.upvotes = comment.upvotes.filter(id => id.toString() !== userId);
+      // Remove upvote if exists
+      if (upvoteIndex > -1) {
+        comment.upvotes.splice(upvoteIndex, 1);
+      }
     }
 
-    const updatedComment = await comment.save();
-    res.status(200).json(updatedComment);
+    await comment.save();
+
+    res.status(200).json(comment);
   } catch (error) {
     console.error("Error downvoting comment:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });

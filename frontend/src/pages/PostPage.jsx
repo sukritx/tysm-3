@@ -133,6 +133,74 @@ const PostPage = () => {
     }
   };
 
+  const handleCommentVote = async (commentId, voteType) => {
+    if (!isAuthenticated) {
+      console.log("User is not authenticated");
+      // Handle unauthenticated user (e.g., show login prompt)
+      return;
+    }
+
+    try {
+      const token = getToken();
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v2/comments/${commentId}/${voteType}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      setComments(prevComments => 
+        prevComments.map(comment => 
+          comment._id === commentId 
+            ? { 
+                ...comment, 
+                ...response.data, 
+                user: comment.user, // Keep the original user data
+                userVoteStatus: {
+                  upvoted: voteType === 'upvote' ? !comment.userVoteStatus?.upvoted : false,
+                  downvoted: voteType === 'downvote' ? !comment.userVoteStatus?.downvoted : false
+                }
+              } 
+            : comment
+        )
+      );
+    } catch (error) {
+      console.error(`Error ${voteType}ing comment:`, error);
+    }
+  };
+
+  const getCommentVoteStatus = (comment) => {
+    return {
+      upvoted: comment.upvotes?.includes(comment.user._id) || false,
+      downvoted: comment.downvotes?.includes(comment.user._id) || false
+    };
+  };
+
+  const getCommentVoteCount = (comment) => {
+    return (comment.upvotes?.length || 0) - (comment.downvotes?.length || 0);
+  };
+
+  const getCommentUpvoteButtonClass = (comment) => {
+    if (comment.userVoteStatus?.upvoted) {
+      return 'text-green-500 bg-green-100';
+    } else {
+      return 'text-muted-foreground hover:text-green-500 hover:bg-green-100';
+    }
+  };
+
+  const getCommentDownvoteButtonClass = (comment) => {
+    if (comment.userVoteStatus?.downvoted) {
+      return 'text-red-500 bg-red-100';
+    } else {
+      return 'text-muted-foreground hover:text-red-500 hover:bg-red-100';
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!post) return <div>Post not found</div>;
@@ -219,16 +287,35 @@ const PostPage = () => {
             <div key={comment._id} className="bg-secondary p-4 rounded-lg mb-4">
               <div className="flex items-center space-x-2 mb-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={comment.user.avatar} alt={comment.user.username} />
-                  <AvatarFallback>{comment.user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarImage src={comment.user?.avatar} alt={comment.user?.username} />
+                  <AvatarFallback>{comment.user?.username?.charAt(0).toUpperCase() || 'A'}</AvatarFallback>
                 </Avatar>
-                <span className="font-semibold">{comment.user.username}</span>
+                <span className="font-semibold">{comment.user?.username || 'Anonymous'}</span>
                 <span className="text-sm text-muted-foreground">{timeAgo(comment.createdAt)}</span>
               </div>
               <p>{comment.text}</p>
               {comment.image && (
                 <img src={comment.image} alt="Comment Image" className="mt-2 max-w-full h-auto rounded-lg" />
               )}
+              <div className="flex items-center space-x-3 mt-2">
+                <button 
+                  onClick={() => handleCommentVote(comment._id, 'upvote')}
+                  className={`flex items-center space-x-1 text-sm transition-colors rounded-full p-1 ${getCommentUpvoteButtonClass(comment)} ${!isAuthenticated && 'opacity-50 cursor-not-allowed'}`}
+                  disabled={!isAuthenticated}
+                >
+                  <ArrowUp className="w-4 h-4" />
+                </button>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {getCommentVoteCount(comment)}
+                </span>
+                <button 
+                  onClick={() => handleCommentVote(comment._id, 'downvote')}
+                  className={`flex items-center space-x-1 text-sm transition-colors rounded-full p-1 ${getCommentDownvoteButtonClass(comment)} ${!isAuthenticated && 'opacity-50 cursor-not-allowed'}`}
+                  disabled={!isAuthenticated}
+                >
+                  <ArrowDown className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
