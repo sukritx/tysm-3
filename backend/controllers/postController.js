@@ -553,10 +553,6 @@ exports.getPublicPost = async (req, res) => {
       avatar: account?.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
     };
 
-    // Remove sensitive information for public view
-    delete postObject.upvotes;
-    delete postObject.downvotes;
-
     res.status(200).json(postObject);
   } catch (error) {
     console.error("Error fetching public post:", error);

@@ -17,8 +17,6 @@ const PostPage = () => {
   const [voteStatus, setVoteStatus] = useState({ upvoted: false, downvoted: false });
   const [voteCount, setVoteCount] = useState(0);
 
-  console.log("Authentication status:", isAuthenticated); // Debug log
-
   useEffect(() => {
     fetchPost();
     fetchComments();
@@ -29,7 +27,6 @@ const PostPage = () => {
       let response;
       if (isAuthenticated) {
         const token = getToken();
-        console.log("Fetching authenticated post with token:", token); // Debug log
         response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/posts/${id}`, {
           headers: { 
             Authorization: `Bearer ${token}`,
@@ -38,10 +35,8 @@ const PostPage = () => {
           }
         });
       } else {
-        console.log("Fetching public post"); // Debug log
         response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/posts/${id}/public`);
       }
-      console.log("Fetched post data:", response.data); // Debug log
       setPost(response.data);
       setVoteStatus(response.data.userVoteStatus || { upvoted: false, downvoted: false });
       setVoteCount((response.data.upvotes?.length || 0) - (response.data.downvotes?.length || 0));
@@ -64,7 +59,6 @@ const PostPage = () => {
   };
 
   const handleVote = async (voteType) => {
-    console.log("Attempting to vote. Authentication status:", isAuthenticated); // Debug log
     if (!isAuthenticated) {
       console.log("User is not authenticated");
       // Handle unauthenticated user (e.g., show login prompt)
@@ -73,7 +67,6 @@ const PostPage = () => {
 
     try {
       const token = getToken();
-      console.log(`Sending ${voteType} request for post ${id} with token:`, token); // Debug log
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/v2/posts/${id}/${voteType}`,
         {},
@@ -85,8 +78,6 @@ const PostPage = () => {
           }
         }
       );
-      
-      console.log("Vote response:", response.data); // Debug log
       
       if (response.data.userVoteStatus) {
         setVoteStatus(response.data.userVoteStatus);
