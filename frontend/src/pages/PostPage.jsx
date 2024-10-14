@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from '../context/AuthContext';
@@ -17,12 +17,7 @@ const PostPage = () => {
   const [voteStatus, setVoteStatus] = useState({ upvoted: false, downvoted: false });
   const [voteCount, setVoteCount] = useState(0);
 
-  useEffect(() => {
-    fetchPost();
-    fetchComments();
-  }, [id, isAuthenticated]);
-
-  const fetchPost = async () => {
+  const fetchPost = useCallback(async () => {
     try {
       let response;
       if (isAuthenticated) {
@@ -39,29 +34,45 @@ const PostPage = () => {
       }
       setPost(response.data);
       setVoteStatus(response.data.userVoteStatus || { upvoted: false, downvoted: false });
-      setVoteCount((response.data.upvotes?.length || 0) - (response.data.downvotes?.length || 0));
+      setVoteCount(response.data.upvotesCount - response.data.downvotesCount);
     } catch (err) {
       console.error("Error fetching post:", err);
       setError("Failed to fetch post. Please try again later.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, isAuthenticated, getToken]);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/comments/post/${id}`);
+      let response;
+      if (isAuthenticated) {
+        const token = getToken();
+        response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/comments/post/${id}`, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+      } else {
+        response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/comments/post/${id}/public`);
+      }
       setComments(response.data);
     } catch (err) {
       console.error("Error fetching comments:", err);
       setError("Failed to fetch comments. Please try again later.");
     }
-  };
+  }, [id, isAuthenticated, getToken]);
+
+  useEffect(() => {
+    fetchPost();
+    fetchComments();
+  }, [fetchPost, fetchComments]);
 
   const handleVote = async (voteType) => {
     if (!isAuthenticated) {
-      console.log("User is not authenticated");
-      // Handle unauthenticated user (e.g., show login prompt)
+      toast.error("Please log in to vote.");
       return;
     }
 
@@ -79,27 +90,17 @@ const PostPage = () => {
         }
       );
       
-      if (response.data.userVoteStatus) {
-        setVoteStatus(response.data.userVoteStatus);
-      } else {
-        setVoteStatus(prevStatus => ({
-          upvoted: voteType === 'upvote' ? !prevStatus.upvoted : false,
-          downvoted: voteType === 'downvote' ? !prevStatus.downvoted : false
-        }));
-      }
-      
-      const newVoteCount = (response.data.upvotes?.length || 0) - (response.data.downvotes?.length || 0);
-      setVoteCount(newVoteCount);
-      
-      // Update the post data locally without changing the user information
+      setVoteStatus(response.data.userVoteStatus);
+      setVoteCount(response.data.upvotesCount - response.data.downvotesCount);
       setPost(prevPost => ({
         ...prevPost,
         ...response.data,
-        user: prevPost.user, // Keep the original user data
-        examSession: prevPost.examSession // Keep the original exam session data
+        user: prevPost.user,
+        examSession: prevPost.examSession
       }));
     } catch (error) {
       console.error(`Error ${voteType}ing post:`, error);
+      toast.error(`Failed to ${voteType} the post. Please try again.`);
     }
   };
 
@@ -135,8 +136,7 @@ const PostPage = () => {
 
   const handleCommentVote = async (commentId, voteType) => {
     if (!isAuthenticated) {
-      console.log("User is not authenticated");
-      // Handle unauthenticated user (e.g., show login prompt)
+      toast.error("Please log in to vote.");
       return;
     }
 
@@ -160,29 +160,19 @@ const PostPage = () => {
             ? { 
                 ...comment, 
                 ...response.data, 
-                user: comment.user, // Keep the original user data
-                userVoteStatus: {
-                  upvoted: voteType === 'upvote' ? !comment.userVoteStatus?.upvoted : false,
-                  downvoted: voteType === 'downvote' ? !comment.userVoteStatus?.downvoted : false
-                }
+                user: comment.user // Keep the original user data
               } 
             : comment
         )
       );
     } catch (error) {
       console.error(`Error ${voteType}ing comment:`, error);
+      toast.error(`Failed to ${voteType} the comment. Please try again.`);
     }
   };
 
-  const getCommentVoteStatus = (comment) => {
-    return {
-      upvoted: comment.upvotes?.includes(comment.user._id) || false,
-      downvoted: comment.downvotes?.includes(comment.user._id) || false
-    };
-  };
-
   const getCommentVoteCount = (comment) => {
-    return (comment.upvotes?.length || 0) - (comment.downvotes?.length || 0);
+    return (comment.upvotesCount || 0) - (comment.downvotesCount || 0);
   };
 
   const getCommentUpvoteButtonClass = (comment) => {
@@ -297,23 +287,23 @@ const PostPage = () => {
               {comment.image && (
                 <img src={comment.image} alt="Comment Image" className="mt-2 max-w-full h-auto rounded-lg" />
               )}
-              <div className="flex items-center space-x-3 mt-2">
+              <div className="flex items-center space-x-4 mt-2">
                 <button 
                   onClick={() => handleCommentVote(comment._id, 'upvote')}
-                  className={`flex items-center space-x-1 text-sm transition-colors rounded-full p-1 ${getCommentUpvoteButtonClass(comment)} ${!isAuthenticated && 'opacity-50 cursor-not-allowed'}`}
+                  className={`flex items-center justify-center w-8 h-8 text-sm transition-colors rounded-full ${getCommentUpvoteButtonClass(comment)} ${!isAuthenticated && 'opacity-50 cursor-not-allowed'}`}
                   disabled={!isAuthenticated}
                 >
-                  <ArrowUp className="w-4 h-4" />
+                  <ArrowUp className="w-5 h-5" />
                 </button>
                 <span className="text-sm font-medium text-muted-foreground">
                   {getCommentVoteCount(comment)}
                 </span>
                 <button 
                   onClick={() => handleCommentVote(comment._id, 'downvote')}
-                  className={`flex items-center space-x-1 text-sm transition-colors rounded-full p-1 ${getCommentDownvoteButtonClass(comment)} ${!isAuthenticated && 'opacity-50 cursor-not-allowed'}`}
+                  className={`flex items-center justify-center w-8 h-8 text-sm transition-colors rounded-full ${getCommentDownvoteButtonClass(comment)} ${!isAuthenticated && 'opacity-50 cursor-not-allowed'}`}
                   disabled={!isAuthenticated}
                 >
-                  <ArrowDown className="w-4 h-4" />
+                  <ArrowDown className="w-5 h-5" />
                 </button>
               </div>
             </div>

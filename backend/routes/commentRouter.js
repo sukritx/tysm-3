@@ -8,6 +8,7 @@ router.post('/', authMiddleware, commentController.createComment);
 //router.delete('/:id', commentController.deleteComment);
 router.post('/:id/upvote', authMiddleware, commentController.upvoteComment);
 router.post('/:id/downvote', authMiddleware, commentController.downvoteComment);
-router.get('/post/:postId', commentController.getComments);
+router.get('/post/:postId', authMiddleware, commentController.getComments);
+router.get('/post/:postId/public', commentController.getPublicComments);
 
 module.exports = router;

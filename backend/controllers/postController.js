@@ -190,6 +190,8 @@ exports.getPost = async (req, res) => {
       upvoted: post.upvotes.includes(userId),
       downvoted: post.downvotes.includes(userId)
     };
+    postObject.upvotesCount = post.upvotes.length;
+    postObject.downvotesCount = post.downvotes.length;
 
     // Calculate comment count
     const commentCount = await Comment.countDocuments({ post: id });
@@ -292,7 +294,9 @@ exports.upvotePost = async (req, res) => {
       userVoteStatus: {
         upvoted: post.upvotes.includes(userId),
         downvoted: post.downvotes.includes(userId)
-      }
+      },
+      upvotesCount: post.upvotes.length,
+      downvotesCount: post.downvotes.length
     });
   } catch (error) {
     console.error("Error upvoting post:", error);
@@ -332,7 +336,9 @@ exports.downvotePost = async (req, res) => {
       userVoteStatus: {
         upvoted: post.upvotes.includes(userId),
         downvoted: post.downvotes.includes(userId)
-      }
+      },
+      upvotesCount: post.upvotes.length,
+      downvotesCount: post.downvotes.length
     });
   } catch (error) {
     console.error("Error downvoting post:", error);
@@ -553,9 +559,19 @@ exports.getPublicPost = async (req, res) => {
       avatar: account?.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
     };
 
+    // Include vote counts for public posts
+    postObject.upvotesCount = post.upvotes.length;
+    postObject.downvotesCount = post.downvotes.length;
+
+    // Remove the actual arrays of user IDs for privacy
+    delete postObject.upvotes;
+    delete postObject.downvotes;
+
     res.status(200).json(postObject);
   } catch (error) {
     console.error("Error fetching public post:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
+
+module.exports = exports;

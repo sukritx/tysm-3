@@ -135,7 +135,7 @@ exports.upvoteComment = async (req, res) => {
     const { id } = req.params;
     const userId = req.userId;
 
-    const comment = await Comment.findById(id);
+    const comment = await Comment.findById(id).populate('user', 'username');
 
     if (!comment) {
       return res.status(404).json({ message: "Comment not found" });
@@ -158,7 +158,15 @@ exports.upvoteComment = async (req, res) => {
 
     await comment.save();
 
-    res.status(200).json(comment);
+    const updatedComment = comment.toObject();
+    updatedComment.userVoteStatus = {
+      upvoted: comment.upvotes.includes(userId),
+      downvoted: comment.downvotes.includes(userId)
+    };
+    updatedComment.upvotesCount = comment.upvotes.length;
+    updatedComment.downvotesCount = comment.downvotes.length;
+
+    res.status(200).json(updatedComment);
   } catch (error) {
     console.error("Error upvoting comment:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -170,7 +178,7 @@ exports.downvoteComment = async (req, res) => {
     const { id } = req.params;
     const userId = req.userId;
 
-    const comment = await Comment.findById(id);
+    const comment = await Comment.findById(id).populate('user', 'username');
 
     if (!comment) {
       return res.status(404).json({ message: "Comment not found" });
@@ -193,7 +201,15 @@ exports.downvoteComment = async (req, res) => {
 
     await comment.save();
 
-    res.status(200).json(comment);
+    const updatedComment = comment.toObject();
+    updatedComment.userVoteStatus = {
+      upvoted: comment.upvotes.includes(userId),
+      downvoted: comment.downvotes.includes(userId)
+    };
+    updatedComment.upvotesCount = comment.upvotes.length;
+    updatedComment.downvotesCount = comment.downvotes.length;
+
+    res.status(200).json(updatedComment);
   } catch (error) {
     console.error("Error downvoting comment:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -201,6 +217,43 @@ exports.downvoteComment = async (req, res) => {
 };
 
 exports.getComments = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.userId; // This will be undefined for non-authenticated requests
+    const comments = await Comment.find({ post: postId })
+      .populate('user', 'username')
+      .sort({ createdAt: -1 });
+
+    // Fetch avatars for all users who commented
+    const userIds = comments.map(comment => comment.user._id);
+    const accounts = await Account.find({ userId: { $in: userIds } }, 'userId avatar');
+
+    // Create a map of user IDs to avatars
+    const avatarMap = new Map(accounts.map(account => [account.userId.toString(), account.avatar]));
+
+    // Add avatar and vote status to each comment
+    const commentsWithAvatars = comments.map(comment => {
+      const commentObj = comment.toObject();
+      commentObj.user.avatar = avatarMap.get(comment.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png';
+      if (userId) {
+        commentObj.userVoteStatus = {
+          upvoted: comment.upvotes.includes(userId),
+          downvoted: comment.downvotes.includes(userId)
+        };
+      }
+      commentObj.upvotesCount = comment.upvotes.length;
+      commentObj.downvotesCount = comment.downvotes.length;
+      return commentObj;
+    });
+
+    res.status(200).json(commentsWithAvatars);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+exports.getPublicComments = async (req, res) => {
   try {
     const { postId } = req.params;
     const comments = await Comment.find({ post: postId })
@@ -214,16 +267,22 @@ exports.getComments = async (req, res) => {
     // Create a map of user IDs to avatars
     const avatarMap = new Map(accounts.map(account => [account.userId.toString(), account.avatar]));
 
-    // Add avatar to each comment
+    // Add avatar and vote counts to each comment
     const commentsWithAvatars = comments.map(comment => {
       const commentObj = comment.toObject();
       commentObj.user.avatar = avatarMap.get(comment.user._id.toString()) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png';
+      // Include vote counts for public users
+      commentObj.upvotesCount = comment.upvotes.length;
+      commentObj.downvotesCount = comment.downvotes.length;
+      // Remove sensitive information
+      delete commentObj.upvotes;
+      delete commentObj.downvotes;
       return commentObj;
     });
 
     res.status(200).json(commentsWithAvatars);
   } catch (error) {
-    console.error("Error fetching comments:", error);
+    console.error("Error fetching public comments:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
