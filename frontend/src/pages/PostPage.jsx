@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from '../context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, Share2, ArrowUp, ArrowDown } from "lucide-react";
+import { MessageSquare, Share2, ArrowUp, ArrowDown, Image, Send } from "lucide-react";
 import { timeAgo } from '../utils/timeAgo';
 import toast from 'react-hot-toast';
 
@@ -13,9 +13,11 @@ const PostPage = () => {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { getToken, isAuthenticated } = useAuth();
+  const { getToken, isAuthenticated, user } = useAuth(); // Add user here
   const [voteStatus, setVoteStatus] = useState({ upvoted: false, downvoted: false });
   const [voteCount, setVoteCount] = useState(0);
+  const [newComment, setNewComment] = useState("");
+  const [commentImage, setCommentImage] = useState(null);
 
   const fetchPost = useCallback(async () => {
     try {
@@ -191,6 +193,68 @@ const PostPage = () => {
     }
   };
 
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      toast.error("Please log in to comment.");
+      return;
+    }
+
+    if (!newComment.trim() && !commentImage) {
+      toast.error("Please enter a comment or upload an image.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('text', newComment);
+      formData.append('postId', id);
+      if (commentImage) {
+        formData.append('image', commentImage);
+      }
+
+      const token = getToken();
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v2/comments`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      // Add the current user's information to the new comment
+      const newCommentWithUser = {
+        ...response.data,
+        user: {
+          _id: user._id,
+          username: user.username,
+          avatar: user.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
+        },
+        upvotesCount: 0,
+        downvotesCount: 0,
+        userVoteStatus: { upvoted: false, downvoted: false }
+      };
+
+      setComments(prevComments => [newCommentWithUser, ...prevComments]);
+      setNewComment("");
+      setCommentImage(null);
+      toast.success("Comment posted successfully!");
+    } catch (error) {
+      console.error("Error posting comment:", error);
+      toast.error("Failed to post comment. Please try again.");
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setCommentImage(file);
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!post) return <div>Post not found</div>;
@@ -270,6 +334,43 @@ const PostPage = () => {
           </div>
         </div>
 
+        {/* New Comment Box */}
+        {isAuthenticated && (
+          <div className="mt-6 mb-8">
+            <h3 className="text-lg font-semibold mb-2">Add a Comment</h3>
+            <form onSubmit={handleCommentSubmit} className="space-y-4">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Write your comment here..."
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="3"
+              />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    <Image className="w-6 h-6 text-gray-500 hover:text-blue-500" />
+                  </label>
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  {commentImage && <span className="text-sm text-gray-500">Image selected</span>}
+                </div>
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {/* Comments Section */}
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Comments</h2>
@@ -277,7 +378,7 @@ const PostPage = () => {
             <div key={comment._id} className="bg-secondary p-4 rounded-lg mb-4">
               <div className="flex items-center space-x-2 mb-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={comment.user?.avatar} alt={comment.user?.username} />
+                  <AvatarImage src={comment.user?.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'} alt={comment.user?.username} />
                   <AvatarFallback>{comment.user?.username?.charAt(0).toUpperCase() || 'A'}</AvatarFallback>
                 </Avatar>
                 <span className="font-semibold">{comment.user?.username || 'Anonymous'}</span>
@@ -309,14 +410,6 @@ const PostPage = () => {
             </div>
           ))}
         </div>
-
-        {/* Add Comment Form */}
-        {isAuthenticated && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Add a Comment</h3>
-            {/* Implement comment form here */}
-          </div>
-        )}
       </div>
     </div>
   );
