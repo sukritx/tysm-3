@@ -13,11 +13,12 @@ const PostPage = () => {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { getToken, isAuthenticated, user } = useAuth(); // Add user here
+  const { getToken, isAuthenticated, user } = useAuth();
   const [voteStatus, setVoteStatus] = useState({ upvoted: false, downvoted: false });
   const [voteCount, setVoteCount] = useState(0);
   const [newComment, setNewComment] = useState("");
   const [commentImage, setCommentImage] = useState(null);
+  const [commentFilter, setCommentFilter] = useState('recent'); // 'recent' or 'upvoted'
 
   const fetchPost = useCallback(async () => {
     try {
@@ -255,6 +256,19 @@ const PostPage = () => {
     }
   };
 
+  const sortComments = useCallback((commentsToSort) => {
+    if (commentFilter === 'recent') {
+      return [...commentsToSort].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (commentFilter === 'upvoted') {
+      return [...commentsToSort].sort((a, b) => (b.upvotesCount - b.downvotesCount) - (a.upvotesCount - a.downvotesCount));
+    }
+    return commentsToSort;
+  }, [commentFilter]);
+
+  const handleFilterChange = (filter) => {
+    setCommentFilter(filter);
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!post) return <div>Post not found</div>;
@@ -373,8 +387,24 @@ const PostPage = () => {
 
         {/* Comments Section */}
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Comments</h2>
-          {comments.map((comment) => (
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Comments</h2>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handleFilterChange('recent')}
+                className={`px-3 py-1 rounded ${commentFilter === 'recent' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+              >
+                Most Recent
+              </button>
+              <button
+                onClick={() => handleFilterChange('upvoted')}
+                className={`px-3 py-1 rounded ${commentFilter === 'upvoted' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+              >
+                Most Upvoted
+              </button>
+            </div>
+          </div>
+          {sortComments(comments).map((comment) => (
             <div key={comment._id} className="bg-secondary p-4 rounded-lg mb-4">
               <div className="flex items-center space-x-2 mb-2">
                 <Avatar className="h-8 w-8">
