@@ -149,10 +149,14 @@ const Navbar = () => {
           }
           break;
         case "vipPurchase":
-          // Navigate to the user's profile or a VIP status page
           navigate(`/${username}`);
           break;
-        // Add more cases as needed for other notification types
+        case "newComment":
+        case "mentionedInComment":
+          if (notification.relatedPost) {
+            navigate(`/post/${notification.relatedPost}`);
+          }
+          break;
         default:
           // Default action or no action
           break;
@@ -243,6 +247,10 @@ const Navbar = () => {
                             ? `${notification.sender?.username || 'Someone'} accepted your friend request`
                             : notification.notificationType === "vipPurchase"
                             ? "You have successfully purchased VIP status!"
+                            : notification.notificationType === "newComment"
+                            ? `${notification.sender?.username || 'Someone'} commented on your post`
+                            : notification.notificationType === "mentionedInComment"
+                            ? `${notification.sender?.username || 'Someone'} mentioned you in a comment`
                             : notification.message || "New notification"}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
