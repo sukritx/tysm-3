@@ -114,16 +114,34 @@ const PostCard = ({ post, onVote }) => {
   };
 
   const getExamName = () => {
-    if (post.examSession && post.examSession.exam && post.examSession.exam.name) {
-      return post.examSession.exam.name;
+    if (post.examName) {
+      return post.examName;
     } else if (post.exam && typeof post.exam === 'object' && post.exam.name) {
       return post.exam.name;
-    } else if (post.exam && typeof post.exam === 'string') {
-      // If exam is just an ID, we might need to fetch the exam details
-      // For now, we'll just display "Unknown Exam"
-      return "Unknown Exam";
+    } else if (post.examSession && post.examSession.exam && post.examSession.exam.name) {
+      return post.examSession.exam.name;
     }
     return "Unknown Exam";
+  };
+
+  const getSubjectName = () => {
+    if (post.subjectName) {
+      return post.subjectName;
+    } else if (post.subject && typeof post.subject === 'object' && post.subject.name) {
+      return post.subject.name;
+    } else if (post.examSession && post.examSession.subject && post.examSession.subject.name) {
+      return post.examSession.subject.name;
+    }
+    return "";
+  };
+
+  const getSessionName = () => {
+    if (post.sessionName) {
+      return post.sessionName;
+    } else if (post.examSession && post.examSession.name) {
+      return post.examSession.name;
+    }
+    return "";
   };
 
   return (
@@ -155,7 +173,7 @@ const PostCard = ({ post, onVote }) => {
       <div className="mt-3">
         <h2 className="text-lg font-semibold">{localPost.heading}</h2>
         <p className="text-sm text-muted-foreground">
-          {getExamName()} {localPost.examSession?.subject?.name || ''} {localPost.examSession?.name || ''}
+          {getExamName()} {getSubjectName()} {getSessionName()}
         </p>
         {localPost.image && (
           <img

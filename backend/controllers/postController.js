@@ -27,11 +27,15 @@ exports.getAuthenticatedPosts = async (req, res) => {
     if (session) {
       matchStage.examSession = new mongoose.Types.ObjectId(session);
     } else if (subject) {
-      const sessions = await ExamSession.find({ subject: subject }).select('_id');
-      matchStage.examSession = { $in: sessions.map(s => s._id) };
+      matchStage.$or = [
+        { subject: new mongoose.Types.ObjectId(subject) },
+        { 'examSession.subject': new mongoose.Types.ObjectId(subject) }
+      ];
     } else if (exam) {
-      const sessions = await ExamSession.find({ exam: exam }).select('_id');
-      matchStage.examSession = { $in: sessions.map(s => s._id) };
+      matchStage.$or = [
+        { exam: new mongoose.Types.ObjectId(exam) },
+        { 'examSession.exam': new mongoose.Types.ObjectId(exam) }
+      ];
     }
 
     let sortStage = { createdAt: -1 }; // Default sort by recent
@@ -69,6 +73,34 @@ exports.getAuthenticatedPosts = async (req, res) => {
       },
       {
         $unwind: '$user'
+      },
+      {
+        $lookup: {
+          from: 'exams',
+          localField: 'exam',
+          foreignField: '_id',
+          as: 'examData'
+        }
+      },
+      {
+        $unwind: {
+          path: '$examData',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'subjects',
+          localField: 'subject',
+          foreignField: '_id',
+          as: 'subjectData'
+        }
+      },
+      {
+        $unwind: {
+          path: '$subjectData',
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $lookup: {
@@ -117,7 +149,10 @@ exports.getAuthenticatedPosts = async (req, res) => {
           userVoteStatus: {
             upvoted: { $in: [new mongoose.Types.ObjectId(userId), "$upvotes"] },
             downvoted: { $in: [new mongoose.Types.ObjectId(userId), "$downvotes"] }
-          }
+          },
+          examName: { $ifNull: ['$examData.name', '$examSession.exam.name'] },
+          subjectName: { $ifNull: ['$subjectData.name', '$examSession.subject.name'] },
+          sessionName: '$examSession.name'
         }
       },
       {
@@ -188,8 +223,10 @@ exports.createPost = async (req, res) => {
 
       const savedPost = await newPost.save();
       
-      // Populate the exam details
+      // Populate the post details
       await savedPost.populate('exam', 'name');
+      await savedPost.populate('subject', 'name');
+      await savedPost.populate('examSession');
       await savedPost.populate('user', 'username avatar');
       
       res.status(201).json(savedPost);
@@ -207,13 +244,9 @@ exports.getPost = async (req, res) => {
 
     const post = await Post.findById(id)
       .populate('user', 'username')
-      .populate({
-        path: 'examSession',
-        populate: [
-          { path: 'exam', select: 'name' },
-          { path: 'subject', select: 'name' }
-        ]
-      });
+      .populate('exam', 'name')
+      .populate('subject', 'name')
+      .populate('examSession');
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
@@ -238,6 +271,11 @@ exports.getPost = async (req, res) => {
       ...postObject.user,
       avatar: account?.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
     };
+
+    // Add the new fields
+    postObject.examName = post.exam ? post.exam.name : null;
+    postObject.subjectName = post.subject ? post.subject.name : null;
+    postObject.sessionName = post.examSession ? post.examSession.name : null;
 
     res.status(200).json(postObject);
   } catch (error) {
@@ -467,11 +505,15 @@ exports.getPublicPosts = async (req, res) => {
     if (session) {
       matchStage.examSession = new mongoose.Types.ObjectId(session);
     } else if (subject) {
-      const sessions = await ExamSession.find({ subject: subject }).select('_id');
-      matchStage.examSession = { $in: sessions.map(s => s._id) };
+      matchStage.$or = [
+        { subject: new mongoose.Types.ObjectId(subject) },
+        { 'examSession.subject': new mongoose.Types.ObjectId(subject) }
+      ];
     } else if (exam) {
-      const sessions = await ExamSession.find({ exam: exam }).select('_id');
-      matchStage.examSession = { $in: sessions.map(s => s._id) };
+      matchStage.$or = [
+        { exam: new mongoose.Types.ObjectId(exam) },
+        { 'examSession.exam': new mongoose.Types.ObjectId(exam) }
+      ];
     }
 
     let sortStage = { createdAt: -1 }; // Default sort by recent
@@ -509,6 +551,34 @@ exports.getPublicPosts = async (req, res) => {
       },
       {
         $unwind: '$user'
+      },
+      {
+        $lookup: {
+          from: 'exams',
+          localField: 'exam',
+          foreignField: '_id',
+          as: 'examData'
+        }
+      },
+      {
+        $unwind: {
+          path: '$examData',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'subjects',
+          localField: 'subject',
+          foreignField: '_id',
+          as: 'subjectData'
+        }
+      },
+      {
+        $unwind: {
+          path: '$subjectData',
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $lookup: {
@@ -550,6 +620,13 @@ exports.getPublicPosts = async (req, res) => {
         $unwind: {
           path: '$examSession.subject',
           preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          examName: { $ifNull: ['$examData.name', '$examSession.exam.name'] },
+          subjectName: { $ifNull: ['$subjectData.name', '$examSession.subject.name'] },
+          sessionName: '$examSession.name'
         }
       },
       {

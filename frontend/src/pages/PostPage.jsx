@@ -269,6 +269,33 @@ const PostPage = () => {
     setCommentFilter(filter);
   };
 
+  const getExamName = () => {
+    if (post.examName) {
+      return post.examName;
+    } else if (post.exam && typeof post.exam === 'object' && post.exam.name) {
+      return post.exam.name;
+    }
+    return "Unknown Exam";
+  };
+
+  const getSubjectName = () => {
+    if (post.subjectName) {
+      return post.subjectName;
+    } else if (post.subject && typeof post.subject === 'object' && post.subject.name) {
+      return post.subject.name;
+    }
+    return "";
+  };
+
+  const getSessionName = () => {
+    if (post.sessionName) {
+      return post.sessionName;
+    } else if (post.examSession && typeof post.examSession === 'object' && post.examSession.name) {
+      return post.examSession.name;
+    }
+    return "";
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!post) return <div>Post not found</div>;
@@ -287,7 +314,7 @@ const PostPage = () => {
           </Avatar>
           <div className="flex flex-col">
             <span className="text-sm text-muted-foreground">
-              <strong>{post.examSession?.exam?.name || 'Unknown Exam'}</strong> • {timeAgo(post.createdAt)}
+              <strong>{getExamName()}</strong> • {timeAgo(post.createdAt)}
             </span>
             <Link 
               to={`/${username}`} 
@@ -302,7 +329,7 @@ const PostPage = () => {
         <div className="mt-3">
           <h2 className="text-lg font-semibold">{post.heading}</h2>
           <p className="text-sm text-muted-foreground">
-            {post.examSession?.exam?.name} {post.examSession?.subject?.name} {post.examSession?.name}
+            {getExamName()} {getSubjectName()} {getSessionName()}
           </p>
           {post.image && (
             <img
