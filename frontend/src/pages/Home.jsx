@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from '../context/AuthContext';
@@ -199,31 +199,42 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { getToken, isAuthenticated } = useAuth();
+  const [filters, setFilters] = useState(() => {
+    const storedExam = localStorage.getItem('selectedExam');
+    const storedSubject = localStorage.getItem('selectedSubject');
+    const storedSession = localStorage.getItem('selectedSession');
+    return {
+      exam: storedExam || '',
+      subject: storedSubject || '',
+      session: storedSession || ''
+    };
+  });
 
   const fetchPosts = useCallback(async () => {
     try {
+      setLoading(true);
       let response;
-      if (isAuthenticated) {
-        const token = getToken();
-        response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/posts/authenticated`, {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-      } else {
-        response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/posts/public`);
-      }
+      const endpoint = isAuthenticated ? '/api/v2/posts/authenticated' : '/api/v2/posts/public';
+      const config = isAuthenticated ? {
+        headers: { 
+          Authorization: `Bearer ${getToken()}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        params: filters
+      } : { params: filters };
+
+      response = await axios.get(`${import.meta.env.VITE_API_URL}${endpoint}`, config);
+      
       console.log("API response:", response.data);
       setPosts(response.data);
-      setLoading(false);
     } catch (err) {
       console.error("Error fetching posts:", err);
       setError("Failed to fetch posts. Please try again later.");
+    } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, getToken]);
+  }, [isAuthenticated, getToken, filters]);
 
   useEffect(() => {
     fetchPosts();
@@ -237,6 +248,24 @@ const Home = () => {
     );
   };
 
+  const handleFilter = useCallback((newFilters) => {
+    setFilters(newFilters);
+    // Update localStorage
+    if (Object.keys(newFilters).length === 0) {
+      localStorage.removeItem('selectedExam');
+      localStorage.removeItem('selectedSubject');
+      localStorage.removeItem('selectedSession');
+    } else {
+      if (newFilters.exam) localStorage.setItem('selectedExam', newFilters.exam);
+      if (newFilters.subject) localStorage.setItem('selectedSubject', newFilters.subject);
+      if (newFilters.session) localStorage.setItem('selectedSession', newFilters.session);
+    }
+  }, []);
+
+  const memoizedSecondaryNavbar = useMemo(() => (
+    <SecondaryNavbar onFilter={handleFilter} />
+  ), [handleFilter]);
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
@@ -244,7 +273,7 @@ const Home = () => {
 
   return (
     <div className="max-w-lg mx-auto">
-      <SecondaryNavbar />
+      {memoizedSecondaryNavbar}
       {postsArray.map(post => (
         <PostCard key={post._id} post={post} onVote={handleVote} />
       ))}

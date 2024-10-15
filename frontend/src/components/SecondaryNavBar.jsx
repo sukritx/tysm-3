@@ -1,77 +1,130 @@
-import { useState, useEffect, useRef } from 'react';
-import { Pen, Image, Send, X } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Pen, Image, Send, X, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 
-const SecondaryNavbar = ({ onPost }) => {
+const SecondaryNavbar = ({ onPost, onFilter }) => {
   const [exams, setExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [selectedExam, setSelectedExam] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedSession, setSelectedSession] = useState('');
+  const [selectedExam, setSelectedExam] = useState(() => localStorage.getItem('selectedExam') || '');
+  const [selectedSubject, setSelectedSubject] = useState(() => localStorage.getItem('selectedSubject') || '');
+  const [selectedSession, setSelectedSession] = useState(() => localStorage.getItem('selectedSession') || '');
+  const [selectedExamName, setSelectedExamName] = useState(() => localStorage.getItem('selectedExamName') || '');
+  const [selectedSubjectName, setSelectedSubjectName] = useState(() => localStorage.getItem('selectedSubjectName') || '');
+  const [selectedSessionName, setSelectedSessionName] = useState(() => localStorage.getItem('selectedSessionName') || '');
   const [showPostBox, setShowPostBox] = useState(false);
   const [postContent, setPostContent] = useState('');
   const [postImage, setPostImage] = useState(null);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    fetchExams();
-  }, []);
-
-  const fetchExams = async () => {
+  const fetchExams = useCallback(async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/exams`);
       setExams(response.data);
+      console.log('Fetched exams:', response.data);
     } catch (error) {
       console.error('Error fetching exams:', error);
     }
-  };
+  }, []);
 
-  const fetchSubjects = async (examId) => {
+  const fetchSubjects = useCallback(async (examId) => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/exams/${examId}/subjects`);
       setSubjects(response.data);
+      console.log('Fetched subjects:', response.data);
     } catch (error) {
       console.error('Error fetching subjects:', error);
+      setSubjects([]);
     }
-  };
+  }, []);
 
-  const fetchSessions = async (examId, subjectId) => {
+  const fetchSessions = useCallback(async (examId, subjectId) => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/exams/${examId}/${subjectId}/sessions`);
       setSessions(response.data);
+      console.log('Fetched sessions:', response.data);
     } catch (error) {
       console.error('Error fetching sessions:', error);
+      setSessions([]);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchExams();
+  }, [fetchExams]);
+
+  useEffect(() => {
+    if (selectedExam) {
+      fetchSubjects(selectedExam);
+    } else {
+      setSubjects([]);
+      setSelectedSubject('');
+      setSelectedSubjectName('');
+    }
+  }, [selectedExam, fetchSubjects]);
+
+  useEffect(() => {
+    if (selectedExam && selectedSubject) {
+      fetchSessions(selectedExam, selectedSubject);
+    } else {
+      setSessions([]);
+      setSelectedSession('');
+      setSelectedSessionName('');
+    }
+  }, [selectedExam, selectedSubject, fetchSessions]);
+
+  useEffect(() => {
+    console.log('Current state:', { selectedExam, selectedSubject, selectedSession });
+  }, [selectedExam, selectedSubject, selectedSession]);
 
   const handleExamChange = (e) => {
     const examId = e.target.value;
+    const examName = exams.find(exam => exam._id === examId)?.name || '';
     setSelectedExam(examId);
+    setSelectedExamName(examName);
     setSelectedSubject('');
+    setSelectedSubjectName('');
     setSelectedSession('');
-    setSessions([]);
+    setSelectedSessionName('');
+    localStorage.setItem('selectedExam', examId);
+    localStorage.setItem('selectedExamName', examName);
+    localStorage.removeItem('selectedSubject');
+    localStorage.removeItem('selectedSubjectName');
+    localStorage.removeItem('selectedSession');
+    localStorage.removeItem('selectedSessionName');
     if (examId) {
-      fetchSubjects(examId);
+      onFilter({ exam: examId });
     } else {
-      setSubjects([]);
+      onFilter({});
     }
   };
 
   const handleSubjectChange = (e) => {
     const subjectId = e.target.value;
+    const subjectName = subjects.find(subject => subject._id === subjectId)?.name || '';
     setSelectedSubject(subjectId);
+    setSelectedSubjectName(subjectName);
     setSelectedSession('');
+    setSelectedSessionName('');
+    localStorage.setItem('selectedSubject', subjectId);
+    localStorage.setItem('selectedSubjectName', subjectName);
+    localStorage.removeItem('selectedSession');
+    localStorage.removeItem('selectedSessionName');
     if (subjectId) {
-      fetchSessions(selectedExam, subjectId);
+      onFilter({ exam: selectedExam, subject: subjectId });
     } else {
-      setSessions([]);
+      onFilter({ exam: selectedExam });
     }
   };
 
   const handleSessionChange = (e) => {
     const sessionId = e.target.value;
+    const sessionName = sessions.find(session => session._id === sessionId)?.name || '';
     setSelectedSession(sessionId);
+    setSelectedSessionName(sessionName);
+    localStorage.setItem('selectedSession', sessionId);
+    localStorage.setItem('selectedSessionName', sessionName);
+    onFilter({ exam: selectedExam, subject: selectedSubject, session: sessionId });
   };
 
   const handlePostClick = () => {
@@ -98,6 +151,22 @@ const SecondaryNavbar = ({ onPost }) => {
     }
   };
 
+  const clearFilters = () => {
+    setSelectedExam('');
+    setSelectedExamName('');
+    setSelectedSubject('');
+    setSelectedSubjectName('');
+    setSelectedSession('');
+    setSelectedSessionName('');
+    localStorage.removeItem('selectedExam');
+    localStorage.removeItem('selectedExamName');
+    localStorage.removeItem('selectedSubject');
+    localStorage.removeItem('selectedSubjectName');
+    localStorage.removeItem('selectedSession');
+    localStorage.removeItem('selectedSessionName');
+    onFilter({});
+  };
+
   return (
     <div className="bg-gray-100 shadow-md rounded-lg p-4 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -107,7 +176,7 @@ const SecondaryNavbar = ({ onPost }) => {
             onChange={handleExamChange}
             className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Select Exam</option>
+            <option value="">{selectedExamName || "Select Exam"}</option>
             {exams.map(exam => (
               <option key={exam._id} value={exam._id}>{exam.name}</option>
             ))}
@@ -118,7 +187,7 @@ const SecondaryNavbar = ({ onPost }) => {
               onChange={handleSubjectChange}
               className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Select Subject</option>
+              <option value="">{selectedSubjectName || "All Subjects"}</option>
               {subjects.map(subject => (
                 <option key={subject._id} value={subject._id}>{subject.name}</option>
               ))}
@@ -130,11 +199,20 @@ const SecondaryNavbar = ({ onPost }) => {
               onChange={handleSessionChange}
               className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Select Session</option>
+              <option value="">{selectedSessionName || "All Sessions"}</option>
               {sessions.map(session => (
                 <option key={session._id} value={session._id}>{session.name}</option>
               ))}
             </select>
+          )}
+          {(selectedExam || selectedSubject || selectedSession) && (
+            <button
+              onClick={clearFilters}
+              className="bg-gray-200 text-gray-700 rounded-md px-3 py-2 hover:bg-gray-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <RefreshCw className="w-5 h-5" />
+              Clear Filters
+            </button>
           )}
         </div>
         <button 
@@ -167,7 +245,6 @@ const SecondaryNavbar = ({ onPost }) => {
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
-              ref={fileInputRef}
               className="hidden"
             />
             <button

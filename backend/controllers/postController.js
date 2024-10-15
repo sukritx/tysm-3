@@ -20,8 +20,22 @@ const s3Client = new S3Client({
 exports.getAuthenticatedPosts = async (req, res) => {
   try {
     const userId = req.userId;
+    const { exam, subject, session } = req.query;
+
+    let matchStage = {};
+
+    if (session) {
+      matchStage.examSession = new mongoose.Types.ObjectId(session);
+    } else if (subject) {
+      const sessions = await ExamSession.find({ subject: subject }).select('_id');
+      matchStage.examSession = { $in: sessions.map(s => s._id) };
+    } else if (exam) {
+      const sessions = await ExamSession.find({ exam: exam }).select('_id');
+      matchStage.examSession = { $in: sessions.map(s => s._id) };
+    }
 
     const posts = await Post.aggregate([
+      { $match: matchStage },
       {
         $lookup: {
           from: 'comments',
@@ -426,7 +440,22 @@ exports.filterPosts = async (req, res) => {
 
 exports.getPublicPosts = async (req, res) => {
   try {
+    const { exam, subject, session } = req.query;
+
+    let matchStage = {};
+
+    if (session) {
+      matchStage.examSession = new mongoose.Types.ObjectId(session);
+    } else if (subject) {
+      const sessions = await ExamSession.find({ subject: subject }).select('_id');
+      matchStage.examSession = { $in: sessions.map(s => s._id) };
+    } else if (exam) {
+      const sessions = await ExamSession.find({ exam: exam }).select('_id');
+      matchStage.examSession = { $in: sessions.map(s => s._id) };
+    }
+
     const posts = await Post.aggregate([
+      { $match: matchStage },
       {
         $lookup: {
           from: 'comments',
