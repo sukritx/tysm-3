@@ -267,8 +267,12 @@ const Home = () => {
   }, []);
 
   const memoizedSecondaryNavbar = useMemo(() => (
-    <SecondaryNavbar onFilter={handleFilter} />
-  ), [handleFilter]);
+    <SecondaryNavbar 
+      onFilter={handleFilter} 
+      onPost={handleCreatePost}
+      isAuthenticated={isAuthenticated}
+    />
+  ), [handleFilter, handleCreatePost, isAuthenticated]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
@@ -283,6 +287,29 @@ const Home = () => {
       ))}
     </div>
   );
+};
+
+const handleCreatePost = async (postData) => {
+  try {
+    const token = getToken();
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/v2/posts`,
+      postData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+    
+    // Add the new post to the posts array
+    setPosts(prevPosts => [response.data, ...prevPosts]);
+    toast.success('Post created successfully!');
+  } catch (error) {
+    console.error('Error creating post:', error);
+    toast.error('Failed to create post. Please try again.');
+  }
 };
 
 export default Home;

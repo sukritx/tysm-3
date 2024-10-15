@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pen, Image, Send, X, RefreshCw } from 'lucide-react';
+import { Pen, Image, Send, X, RefreshCw, Filter } from 'lucide-react';
 import axios from 'axios';
 
-const SecondaryNavbar = ({ onPost, onFilter }) => {
+const SecondaryNavbar = ({ onPost, onFilter, isAuthenticated }) => {
   const [exams, setExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -12,11 +12,15 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
   const [selectedExamName, setSelectedExamName] = useState(() => localStorage.getItem('selectedExamName') || '');
   const [selectedSubjectName, setSelectedSubjectName] = useState(() => localStorage.getItem('selectedSubjectName') || '');
   const [selectedSessionName, setSelectedSessionName] = useState(() => localStorage.getItem('selectedSessionName') || '');
-  const [showPostBox, setShowPostBox] = useState(false);
   const [postContent, setPostContent] = useState('');
   const [postImage, setPostImage] = useState(null);
   const fileInputRef = useRef(null);
   const [sortBy, setSortBy] = useState(() => localStorage.getItem('sortBy') || 'recent');
+  const [showFilterBox, setShowFilterBox] = useState(false);
+  const [showPostBox, setShowPostBox] = useState(false);
+  const [postExam, setPostExam] = useState('');
+  const [postSubject, setPostSubject] = useState('');
+  const [postSession, setPostSession] = useState('');
 
   const fetchExams = useCallback(async () => {
     try {
@@ -78,7 +82,7 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
     console.log('Current state:', { selectedExam, selectedSubject, selectedSession });
   }, [selectedExam, selectedSubject, selectedSession]);
 
-  const handleExamChange = (e) => {
+  const handleFilterExamChange = (e) => {
     const examId = e.target.value;
     const examName = exams.find(exam => exam._id === examId)?.name || '';
     setSelectedExam(examId);
@@ -98,6 +102,34 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
     } else {
       onFilter({});
     }
+  };
+
+  const handlePostExamChange = (e) => {
+    const examId = e.target.value;
+    setPostExam(examId);
+    setPostSubject('');
+    setPostSession('');
+    if (examId) {
+      fetchSubjects(examId);
+    } else {
+      setSubjects([]);
+    }
+  };
+
+  const handlePostSubjectChange = (e) => {
+    const subjectId = e.target.value;
+    setPostSubject(subjectId);
+    setPostSession('');
+    if (subjectId) {
+      fetchSessions(postExam, subjectId);
+    } else {
+      setSessions([]);
+    }
+  };
+
+  const handlePostSessionChange = (e) => {
+    const sessionId = e.target.value;
+    setPostSession(sessionId);
   };
 
   const handleSubjectChange = (e) => {
@@ -128,10 +160,6 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
     onFilter({ exam: selectedExam, subject: selectedSubject, session: sessionId });
   };
 
-  const handlePostClick = () => {
-    setShowPostBox(!showPostBox);
-  };
-
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     setPostImage(file);
@@ -142,13 +170,16 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
       onPost({
         content: postContent,
         image: postImage,
-        exam: selectedExam,
-        subject: selectedSubject,
-        session: selectedSession
+        exam: postExam,
+        subject: postSubject,
+        session: postSession
       });
       setPostContent('');
       setPostImage(null);
       setShowPostBox(false);
+      setPostExam('');
+      setPostSubject('');
+      setPostSession('');
     }
   };
 
@@ -182,45 +213,75 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
     onFilter({});
   };
 
+  const handleFilterClick = () => {
+    setShowFilterBox(!showFilterBox);
+    setShowPostBox(false);
+  };
+
+  const handlePostClick = () => {
+    setShowPostBox(!showPostBox);
+    setShowFilterBox(false);
+  };
+
   return (
     <div className="bg-gray-100 shadow-md rounded-lg p-4 mb-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2 flex-grow">
-          <select
-            value={selectedExam}
-            onChange={handleExamChange}
-            className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <div className="flex justify-between items-center mb-4">
+        <button 
+          onClick={handleFilterClick}
+          className="flex items-center justify-center bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          <Filter className="w-5 h-5 mr-2" />
+          <span>Filter Posts</span>
+        </button>
+        {isAuthenticated && (
+          <button 
+            onClick={handlePostClick}
+            className="flex items-center justify-center bg-green-500 text-white rounded-md px-4 py-2 hover:bg-green-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
           >
-            <option value="">{selectedExamName || "Select Exam"}</option>
-            {exams.filter(exam => exam._id !== selectedExam).map(exam => (
-              <option key={exam._id} value={exam._id}>{exam.name}</option>
-            ))}
-          </select>
-          {selectedExam && (
+            <Pen className="w-5 h-5 mr-2" />
+            <span>Create Post</span>
+          </button>
+        )}
+      </div>
+
+      {showFilterBox && (
+        <div className="mb-4 bg-white p-4 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Filter Posts</h3>
+          <div className="flex flex-wrap items-center gap-2">
             <select
-              value={selectedSubject}
-              onChange={handleSubjectChange}
+              value={selectedExam}
+              onChange={handleFilterExamChange}
               className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">{selectedSubjectName || "All Subjects"}</option>
-              {subjects.filter(subject => subject._id !== selectedSubject).map(subject => (
-                <option key={subject._id} value={subject._id}>{subject.name}</option>
+              <option value="">{selectedExamName || "Select Exam"}</option>
+              {exams.filter(exam => exam._id !== selectedExam).map(exam => (
+                <option key={exam._id} value={exam._id}>{exam.name}</option>
               ))}
             </select>
-          )}
-          {selectedSubject && (
-            <select
-              value={selectedSession}
-              onChange={handleSessionChange}
-              className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">{selectedSessionName || "All Sessions"}</option>
-              {sessions.filter(session => session._id !== selectedSession).map(session => (
-                <option key={session._id} value={session._id}>{session.name}</option>
-              ))}
-            </select>
-          )}
-          {(selectedExam || selectedSubject || selectedSession) && (
+            {selectedExam && (
+              <select
+                value={selectedSubject}
+                onChange={handleSubjectChange}
+                className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">{selectedSubjectName || "All Subjects"}</option>
+                {subjects.filter(subject => subject._id !== selectedSubject).map(subject => (
+                  <option key={subject._id} value={subject._id}>{subject.name}</option>
+                ))}
+              </select>
+            )}
+            {selectedSubject && (
+              <select
+                value={selectedSession}
+                onChange={handleSessionChange}
+                className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">{selectedSessionName || "All Sessions"}</option>
+                {sessions.filter(session => session._id !== selectedSession).map(session => (
+                  <option key={session._id} value={session._id}>{session.name}</option>
+                ))}
+              </select>
+            )}
             <select
               value={sortBy}
               onChange={handleSortChange}
@@ -229,24 +290,19 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
               <option value="recent">Most Recent</option>
               <option value="upvotes">Most Upvotes</option>
             </select>
-          )}
-          {(selectedExam || selectedSubject || selectedSession || sortBy !== 'recent') && (
-            <button
-              onClick={clearFilters}
-              className="bg-gray-200 text-gray-700 rounded-md px-3 py-2 hover:bg-gray-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <RefreshCw className="w-5 h-5" />
-              Clear Filters
-            </button>
-          )}
+            {(selectedExam || selectedSubject || selectedSession || sortBy !== 'recent') && (
+              <button
+                onClick={clearFilters}
+                className="bg-gray-200 text-gray-700 rounded-md px-3 py-2 hover:bg-gray-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <RefreshCw className="w-5 h-5" />
+                Clear Filters
+              </button>
+            )}
+          </div>
         </div>
-        <button 
-          onClick={handlePostClick} 
-          className="bg-blue-500 text-white rounded-full p-2 hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          <Pen className="w-5 h-5" />
-        </button>
-      </div>
+      )}
+
       {showPostBox && (
         <div className="mt-4 bg-white p-4 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-2">
@@ -255,9 +311,43 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
               onClick={() => setShowPostBox(false)}
               className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </button>
           </div>
+          <select
+            value={postExam}
+            onChange={handlePostExamChange}
+            className="w-full mb-2 p-2 rounded-md bg-gray-50 text-gray-700 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select Exam</option>
+            {exams.map(exam => (
+              <option key={exam._id} value={exam._id}>{exam.name}</option>
+            ))}
+          </select>
+          {postExam && (
+            <select
+              value={postSubject}
+              onChange={handlePostSubjectChange}
+              className="w-full mb-2 p-2 rounded-md bg-gray-50 text-gray-700 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Subject (Optional)</option>
+              {subjects.map(subject => (
+                <option key={subject._id} value={subject._id}>{subject.name}</option>
+              ))}
+            </select>
+          )}
+          {postSubject && (
+            <select
+              value={postSession}
+              onChange={handlePostSessionChange}
+              className="w-full mb-2 p-2 rounded-md bg-gray-50 text-gray-700 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Session (Optional)</option>
+              {sessions.map(session => (
+                <option key={session._id} value={session._id}>{session.name}</option>
+              ))}
+            </select>
+          )}
           <textarea
             value={postContent}
             onChange={(e) => setPostContent(e.target.value)}
@@ -270,19 +360,22 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
+              ref={fileInputRef}
               className="hidden"
             />
             <button
               onClick={() => fileInputRef.current.click()}
-              className="text-blue-500 hover:text-blue-600 transition-colors duration-200"
+              className="flex items-center justify-center text-blue-500 hover:text-blue-600 transition-colors duration-200 px-3 py-1 border border-blue-500 rounded-md"
             >
-              <Image className="w-5 h-5" />
+              <Image className="w-5 h-5 mr-2" />
+              <span>Add Image</span>
             </button>
             <button
               onClick={handlePost}
-              className="bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="flex items-center justify-center bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-5 h-5 mr-2" />
+              <span>Post</span>
             </button>
           </div>
           {postImage && (

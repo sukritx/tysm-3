@@ -161,11 +161,15 @@ exports.createPost = async (req, res) => {
     }
 
     try {
-      const { heading, examSessionId } = req.body;
+      const { heading, examId, subjectId, sessionId } = req.body;
       const userId = req.user._id;
 
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      if (!examId) {
+        return res.status(400).json({ message: "Exam is required" });
       }
 
       let imageUrl = null;
@@ -177,7 +181,9 @@ exports.createPost = async (req, res) => {
         user: userId,
         heading,
         image: imageUrl,
-        examSession: examSessionId
+        exam: examId,
+        subject: subjectId || null,
+        examSession: sessionId || null
       });
 
       const savedPost = await newPost.save();
