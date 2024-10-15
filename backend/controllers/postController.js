@@ -20,7 +20,7 @@ const s3Client = new S3Client({
 exports.getAuthenticatedPosts = async (req, res) => {
   try {
     const userId = req.userId;
-    const { exam, subject, session } = req.query;
+    const { exam, subject, session, sortBy } = req.query;
 
     let matchStage = {};
 
@@ -32,6 +32,11 @@ exports.getAuthenticatedPosts = async (req, res) => {
     } else if (exam) {
       const sessions = await ExamSession.find({ exam: exam }).select('_id');
       matchStage.examSession = { $in: sessions.map(s => s._id) };
+    }
+
+    let sortStage = { createdAt: -1 }; // Default sort by recent
+    if (sortBy === 'upvotes') {
+      sortStage = { upvotesCount: -1, createdAt: -1 };
     }
 
     const posts = await Post.aggregate([
@@ -116,8 +121,12 @@ exports.getAuthenticatedPosts = async (req, res) => {
         }
       },
       {
-        $sort: { createdAt: -1 }
-      }
+        $addFields: {
+          upvotesCount: { $size: "$upvotes" },
+          downvotesCount: { $size: "$downvotes" }
+        }
+      },
+      { $sort: sortStage }
     ]);
 
     // Fetch accounts for all users in the posts
@@ -440,7 +449,7 @@ exports.filterPosts = async (req, res) => {
 
 exports.getPublicPosts = async (req, res) => {
   try {
-    const { exam, subject, session } = req.query;
+    const { exam, subject, session, sortBy } = req.query;
 
     let matchStage = {};
 
@@ -452,6 +461,11 @@ exports.getPublicPosts = async (req, res) => {
     } else if (exam) {
       const sessions = await ExamSession.find({ exam: exam }).select('_id');
       matchStage.examSession = { $in: sessions.map(s => s._id) };
+    }
+
+    let sortStage = { createdAt: -1 }; // Default sort by recent
+    if (sortBy === 'upvotes') {
+      sortStage = { upvotesCount: -1, createdAt: -1 };
     }
 
     const posts = await Post.aggregate([
@@ -528,8 +542,12 @@ exports.getPublicPosts = async (req, res) => {
         }
       },
       {
-        $sort: { createdAt: -1 }
-      }
+        $addFields: {
+          upvotesCount: { $size: "$upvotes" },
+          downvotesCount: { $size: "$downvotes" }
+        }
+      },
+      { $sort: sortStage }
     ]);
 
     // Fetch accounts for all users in the posts

@@ -203,10 +203,12 @@ const Home = () => {
     const storedExam = localStorage.getItem('selectedExam');
     const storedSubject = localStorage.getItem('selectedSubject');
     const storedSession = localStorage.getItem('selectedSession');
+    const storedSortBy = localStorage.getItem('sortBy');
     return {
       exam: storedExam || '',
       subject: storedSubject || '',
-      session: storedSession || ''
+      session: storedSession || '',
+      sortBy: storedSortBy || 'recent'
     };
   });
 
@@ -255,10 +257,12 @@ const Home = () => {
       localStorage.removeItem('selectedExam');
       localStorage.removeItem('selectedSubject');
       localStorage.removeItem('selectedSession');
+      localStorage.removeItem('sortBy');
     } else {
       if (newFilters.exam) localStorage.setItem('selectedExam', newFilters.exam);
       if (newFilters.subject) localStorage.setItem('selectedSubject', newFilters.subject);
       if (newFilters.session) localStorage.setItem('selectedSession', newFilters.session);
+      if (newFilters.sortBy) localStorage.setItem('sortBy', newFilters.sortBy);
     }
   }, []);
 

@@ -16,6 +16,7 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
   const [postContent, setPostContent] = useState('');
   const [postImage, setPostImage] = useState(null);
   const fileInputRef = useRef(null);
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem('sortBy') || 'recent');
 
   const fetchExams = useCallback(async () => {
     try {
@@ -151,6 +152,18 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
     }
   };
 
+  const handleSortChange = (e) => {
+    const newSortBy = e.target.value;
+    setSortBy(newSortBy);
+    localStorage.setItem('sortBy', newSortBy);
+    onFilter({ 
+      exam: selectedExam, 
+      subject: selectedSubject, 
+      session: selectedSession, 
+      sortBy: newSortBy 
+    });
+  };
+
   const clearFilters = () => {
     setSelectedExam('');
     setSelectedExamName('');
@@ -158,12 +171,14 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
     setSelectedSubjectName('');
     setSelectedSession('');
     setSelectedSessionName('');
+    setSortBy('recent');
     localStorage.removeItem('selectedExam');
     localStorage.removeItem('selectedExamName');
     localStorage.removeItem('selectedSubject');
     localStorage.removeItem('selectedSubjectName');
     localStorage.removeItem('selectedSession');
     localStorage.removeItem('selectedSessionName');
+    localStorage.removeItem('sortBy');
     onFilter({});
   };
 
@@ -206,6 +221,16 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
             </select>
           )}
           {(selectedExam || selectedSubject || selectedSession) && (
+            <select
+              value={sortBy}
+              onChange={handleSortChange}
+              className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="recent">Most Recent</option>
+              <option value="upvotes">Most Upvotes</option>
+            </select>
+          )}
+          {(selectedExam || selectedSubject || selectedSession || sortBy !== 'recent') && (
             <button
               onClick={clearFilters}
               className="bg-gray-200 text-gray-700 rounded-md px-3 py-2 hover:bg-gray-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
