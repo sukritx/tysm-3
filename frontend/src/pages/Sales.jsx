@@ -101,7 +101,6 @@ const Sales = () => {
             <ul className="text-gray-300 mb-4 space-y-2">
               <li className="flex items-center"><Eye className="mr-2" /> See who viewed your profile</li>
               <li className="flex items-center"><Ghost className="mr-2" /> Browse profiles invisibly</li>
-              <li className="flex items-center"><Users className="mr-2" /> See who's going to which club</li>
               <li className="flex items-center"><Badge className="mr-2" /> Exclusive VIP badge</li>
             </ul>
             <Button 
