@@ -177,7 +177,7 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
             className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">{selectedExamName || "Select Exam"}</option>
-            {exams.map(exam => (
+            {exams.filter(exam => exam._id !== selectedExam).map(exam => (
               <option key={exam._id} value={exam._id}>{exam.name}</option>
             ))}
           </select>
@@ -188,7 +188,7 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
               className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">{selectedSubjectName || "All Subjects"}</option>
-              {subjects.map(subject => (
+              {subjects.filter(subject => subject._id !== selectedSubject).map(subject => (
                 <option key={subject._id} value={subject._id}>{subject.name}</option>
               ))}
             </select>
@@ -200,7 +200,7 @@ const SecondaryNavbar = ({ onPost, onFilter }) => {
               className="bg-white text-gray-700 rounded-md px-3 py-2 w-full sm:w-auto border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">{selectedSessionName || "All Sessions"}</option>
-              {sessions.map(session => (
+              {sessions.filter(session => session._id !== selectedSession).map(session => (
                 <option key={session._id} value={session._id}>{session.name}</option>
               ))}
             </select>
