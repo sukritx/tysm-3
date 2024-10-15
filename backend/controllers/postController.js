@@ -187,6 +187,11 @@ exports.createPost = async (req, res) => {
       });
 
       const savedPost = await newPost.save();
+      
+      // Populate the exam details
+      await savedPost.populate('exam', 'name');
+      await savedPost.populate('user', 'username avatar');
+      
       res.status(201).json(savedPost);
     } catch (error) {
       console.error("Error creating post:", error);

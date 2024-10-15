@@ -113,6 +113,19 @@ const PostCard = ({ post, onVote }) => {
     });
   };
 
+  const getExamName = () => {
+    if (post.examSession && post.examSession.exam && post.examSession.exam.name) {
+      return post.examSession.exam.name;
+    } else if (post.exam && typeof post.exam === 'object' && post.exam.name) {
+      return post.exam.name;
+    } else if (post.exam && typeof post.exam === 'string') {
+      // If exam is just an ID, we might need to fetch the exam details
+      // For now, we'll just display "Unknown Exam"
+      return "Unknown Exam";
+    }
+    return "Unknown Exam";
+  };
+
   return (
     <div 
       className="p-4 bg-background !bg-background text-foreground shadow-md rounded-lg mt-4 border border-border cursor-pointer"
@@ -126,7 +139,7 @@ const PostCard = ({ post, onVote }) => {
         </Avatar>
         <div className="flex flex-col">
           <span className="text-sm text-muted-foreground">
-            <strong>{localPost.examSession?.exam?.name || 'Unknown Exam'}</strong> • {timeAgo(localPost.createdAt)}
+            <strong>{getExamName()}</strong> • {timeAgo(localPost.createdAt)}
           </span>
           <Link 
             to={`/${localPost.user?.username}`} 
@@ -142,7 +155,7 @@ const PostCard = ({ post, onVote }) => {
       <div className="mt-3">
         <h2 className="text-lg font-semibold">{localPost.heading}</h2>
         <p className="text-sm text-muted-foreground">
-          {localPost.examSession?.exam?.name} {localPost.examSession?.subject?.name} {localPost.examSession?.name}
+          {getExamName()} {localPost.examSession?.subject?.name || ''} {localPost.examSession?.name || ''}
         </p>
         {localPost.image && (
           <img
@@ -266,6 +279,35 @@ const Home = () => {
     }
   }, []);
 
+  const handleCreatePost = useCallback(async (postData) => {
+    try {
+      const token = getToken();
+      const formData = new FormData();
+      formData.append('heading', postData.content); // Change 'content' to 'heading'
+      formData.append('examId', postData.exam);
+      if (postData.subject) formData.append('subjectId', postData.subject);
+      if (postData.session) formData.append('sessionId', postData.session);
+      if (postData.image) formData.append('image', postData.image);
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/v2/posts`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      setPosts(prevPosts => [response.data, ...prevPosts]);
+      toast.success('Post created successfully!');
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast.error('Failed to create post. Please try again.');
+    }
+  }, [getToken]);
+
   const memoizedSecondaryNavbar = useMemo(() => (
     <SecondaryNavbar 
       onFilter={handleFilter} 
@@ -287,29 +329,6 @@ const Home = () => {
       ))}
     </div>
   );
-};
-
-const handleCreatePost = async (postData) => {
-  try {
-    const token = getToken();
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/v2/posts`,
-      postData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      }
-    );
-    
-    // Add the new post to the posts array
-    setPosts(prevPosts => [response.data, ...prevPosts]);
-    toast.success('Post created successfully!');
-  } catch (error) {
-    console.error('Error creating post:', error);
-    toast.error('Failed to create post. Please try again.');
-  }
 };
 
 export default Home;

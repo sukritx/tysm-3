@@ -168,7 +168,7 @@ const SecondaryNavbar = ({ onPost, onFilter, isAuthenticated }) => {
   const handlePost = () => {
     if (postContent.trim() || postImage) {
       onPost({
-        content: postContent,
+        content: postContent, // This will be mapped to 'heading' in handleCreatePost
         image: postImage,
         exam: postExam,
         subject: postSubject,
