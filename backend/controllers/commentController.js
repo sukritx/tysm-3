@@ -17,7 +17,7 @@ const s3Client = new S3Client({
   });
 
 exports.createComment = async (req, res) => {
-  const upload = fileUpload({ destination: 'comments' }).single('image');
+  const upload = fileUpload({ destination: 'comments' });
 
   upload(req, res, async function(err) {
     if (err) {
@@ -40,7 +40,7 @@ exports.createComment = async (req, res) => {
 
       let imageUrl = null;
       if (req.file) {
-        imageUrl = `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.cdn.digitaloceanspaces.com/${req.file.key}`;
+        imageUrl = req.file.location;
       }
 
       const newComment = new Comment({
@@ -72,7 +72,16 @@ exports.createComment = async (req, res) => {
         }
       }
 
-      res.status(201).json(savedComment);
+      // Populate user data
+      await savedComment.populate('user', 'username');
+      
+      // Fetch user's avatar
+      const account = await Account.findOne({ userId: savedComment.user._id }, 'avatar');
+      
+      const commentWithAvatar = savedComment.toObject();
+      commentWithAvatar.user.avatar = account?.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png';
+
+      res.status(201).json(commentWithAvatar);
     } catch (error) {
       console.error("Error creating comment:", error);
       res.status(500).json({ message: "Internal server error", error: error.message });

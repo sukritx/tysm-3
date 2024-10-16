@@ -351,7 +351,7 @@ const SecondaryNavbar = ({ onPost, onFilter, isAuthenticated }) => {
           <textarea
             value={postContent}
             onChange={(e) => setPostContent(e.target.value)}
-            placeholder="What's on your mind?"
+            placeholder="What's on your mind?*"
             className="w-full p-2 rounded-md bg-gray-50 text-gray-700 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             rows="3"
           />
@@ -363,13 +363,16 @@ const SecondaryNavbar = ({ onPost, onFilter, isAuthenticated }) => {
               ref={fileInputRef}
               className="hidden"
             />
-            <button
-              onClick={() => fileInputRef.current.click()}
-              className="flex items-center justify-center text-blue-500 hover:text-blue-600 transition-colors duration-200 px-3 py-1 border border-blue-500 rounded-md"
-            >
-              <Image className="w-5 h-5 mr-2" />
-              <span>Add Image</span>
-            </button>
+            <div className="flex items-center">
+              <button
+                onClick={() => fileInputRef.current.click()}
+                className="flex items-center justify-center text-blue-500 hover:text-blue-600 transition-colors duration-200 px-3 py-1 border border-blue-500 rounded-md mr-2"
+              >
+                <Image className="w-5 h-5 mr-2" />
+                <span>Add Image</span>
+              </button>
+              <span className="text-xs text-gray-500">No more than 5MB</span>
+            </div>
             <button
               onClick={handlePost}
               className="flex items-center justify-center bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"

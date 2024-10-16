@@ -187,7 +187,7 @@ exports.getAuthenticatedPosts = async (req, res) => {
 };
 
 exports.createPost = async (req, res) => {
-  const upload = fileUpload({ destination: 'posts' }).single('image');
+  const upload = fileUpload({ destination: 'posts' });
 
   upload(req, res, async function(err) {
     if (err) {
@@ -209,7 +209,7 @@ exports.createPost = async (req, res) => {
 
       let imageUrl = null;
       if (req.file) {
-        imageUrl = `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.cdn.digitaloceanspaces.com/${req.file.key}`;
+        imageUrl = req.file.location;
       }
 
       const newPost = new Post({
@@ -227,9 +227,15 @@ exports.createPost = async (req, res) => {
       await savedPost.populate('exam', 'name');
       await savedPost.populate('subject', 'name');
       await savedPost.populate('examSession');
-      await savedPost.populate('user', 'username avatar');
+      await savedPost.populate('user', 'username');
       
-      res.status(201).json(savedPost);
+      // Fetch user's avatar
+      const account = await Account.findOne({ userId: savedPost.user._id }, 'avatar');
+      
+      const postWithAvatar = savedPost.toObject();
+      postWithAvatar.user.avatar = account?.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png';
+
+      res.status(201).json(postWithAvatar);
     } catch (error) {
       console.error("Error creating post:", error);
       res.status(500).json({ message: "Internal server error", error: error.message });
@@ -669,6 +675,8 @@ exports.getPublicPost = async (req, res) => {
     const { id } = req.params;
     const post = await Post.findById(id)
       .populate('user', 'username')
+      .populate('exam', 'name')
+      .populate('subject', 'name')
       .populate({
         path: 'examSession',
         populate: [
@@ -697,6 +705,11 @@ exports.getPublicPost = async (req, res) => {
     // Include vote counts for public posts
     postObject.upvotesCount = post.upvotes.length;
     postObject.downvotesCount = post.downvotes.length;
+
+    // Add the new fields
+    postObject.examName = post.exam ? post.exam.name : null;
+    postObject.subjectName = post.subject ? post.subject.name : null;
+    postObject.sessionName = post.examSession ? post.examSession.name : null;
 
     // Remove the actual arrays of user IDs for privacy
     delete postObject.upvotes;
