@@ -81,8 +81,6 @@ exports.getSubjects = async (req, res) => {
     if (!exam) {
       return res.status(404).json({ message: "Exam not found" });
     }
-    
-    console.log('Subjects for exam:', exam.subjects);
     res.status(200).json(exam.subjects);
   } catch (error) {
     console.error("Error fetching subjects:", error);
