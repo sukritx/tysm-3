@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './PrivateRoute';
 import AdminRoute from './AdminRoute';
@@ -22,13 +22,27 @@ import PostPage from './pages/PostPage';
 
 import ReactGA from 'react-ga4';
 
+// Initialize GA
+ReactGA.initialize(import.meta.env.VITE_GA_MEASUREMENT_ID);
+
+// Create a component to track page views
+function PageViewTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
+  }, [location]);
+
+  return null;
+}
+
 function App() {
-  ReactGA.initialize(import.meta.env.VITE_GA_MEASUREMENT_ID);
   return (
     <Router>
       <AuthProvider>
         <div className="min-h-screen bg-gray-900 text-white">
           <Navbar />
+          <PageViewTracker />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/post/:id" element={<PostPage />} />

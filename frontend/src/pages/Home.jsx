@@ -7,6 +7,7 @@ import { MessageSquare, Share2, ArrowUp, ArrowDown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { timeAgo } from '../utils/timeAgo';
 import toast from 'react-hot-toast';
+import ReactGA from 'react-ga4';
 
 const PostCard = ({ post, onVote }) => {
   const { getToken, isAuthenticated } = useAuth();
@@ -68,8 +69,19 @@ const PostCard = ({ post, onVote }) => {
         user: localPost.user,
         examSession: localPost.examSession
       });
+
+      ReactGA.event({
+        category: 'Post',
+        action: `${voteType} Post`,
+        label: post._id
+      });
     } catch (error) {
       console.error(`Error ${voteType}ing post:`, error);
+      ReactGA.event({
+        category: 'Post',
+        action: `${voteType} Post Error`,
+        label: post._id
+      });
     }
   };
 
@@ -94,11 +106,21 @@ const PostCard = ({ post, onVote }) => {
   };
 
   const handlePostClick = () => {
+    ReactGA.event({
+      category: 'Post',
+      action: 'View Post',
+      label: post._id
+    });
     navigate(`/post/${post._id}`);
   };
 
   const handleCommentClick = (e) => {
     e.stopPropagation();
+    ReactGA.event({
+      category: 'Post',
+      action: 'View Comments',
+      label: post._id
+    });
     navigate(`/post/${post._id}`);
   };
 
@@ -107,9 +129,19 @@ const PostCard = ({ post, onVote }) => {
     const postUrl = `${window.location.origin}/post/${post._id}`;
     navigator.clipboard.writeText(postUrl).then(() => {
       toast.success('Link copied to clipboard!');
+      ReactGA.event({
+        category: 'Post',
+        action: 'Share Post',
+        label: post._id
+      });
     }, (err) => {
       console.error('Could not copy text: ', err);
       toast.error('Failed to copy link');
+      ReactGA.event({
+        category: 'Post',
+        action: 'Share Post Error',
+        label: post._id
+      });
     });
   };
 
@@ -261,9 +293,19 @@ const Home = () => {
       
       console.log("API response:", response.data);
       setPosts(response.data);
+      ReactGA.event({
+        category: 'Home',
+        action: 'Fetch Posts',
+        label: 'Success'
+      });
     } catch (err) {
       console.error("Error fetching posts:", err);
       setError("Failed to fetch posts. Please try again later.");
+      ReactGA.event({
+        category: 'Home',
+        action: 'Fetch Posts',
+        label: 'Error'
+      });
     } finally {
       setLoading(false);
     }
@@ -295,6 +337,11 @@ const Home = () => {
       if (newFilters.session) localStorage.setItem('selectedSession', newFilters.session);
       if (newFilters.sortBy) localStorage.setItem('sortBy', newFilters.sortBy);
     }
+    ReactGA.event({
+      category: 'Home',
+      action: 'Apply Filter',
+      label: JSON.stringify(newFilters)
+    });
   }, []);
 
   const handleCreatePost = useCallback(async (postData) => {
@@ -320,9 +367,19 @@ const Home = () => {
       
       setPosts(prevPosts => [response.data, ...prevPosts]);
       toast.success('Post created successfully!');
+      ReactGA.event({
+        category: 'Post',
+        action: 'Create Post',
+        label: 'Success'
+      });
     } catch (error) {
       console.error('Error creating post:', error);
       toast.error('Failed to create post. Please try again.');
+      ReactGA.event({
+        category: 'Post',
+        action: 'Create Post',
+        label: 'Error'
+      });
     }
   }, [getToken]);
 
