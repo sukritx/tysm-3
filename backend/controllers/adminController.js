@@ -194,9 +194,56 @@ const createBulkSessions = async (req, res) => {
     }
 };
 
+const createExam = async (req, res) => {
+    try {
+        const { name } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ message: "Exam name is required" });
+        }
+
+        const newExam = new Exam({ name });
+        await newExam.save();
+
+        res.status(201).json({ message: "Exam created successfully", exam: newExam });
+    } catch (error) {
+        console.error("Error creating exam:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+const createSubject = async (req, res) => {
+    try {
+        const { examId } = req.params;
+        const { name } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ message: "Subject name is required" });
+        }
+
+        const exam = await Exam.findById(examId);
+        if (!exam) {
+            return res.status(404).json({ message: "Exam not found" });
+        }
+
+        const newSubject = new Subject({ name, exam: examId });
+        await newSubject.save();
+
+        exam.subjects.push(newSubject._id);
+        await exam.save();
+
+        res.status(201).json({ message: "Subject created successfully", subject: newSubject });
+    } catch (error) {
+        console.error("Error creating subject:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
 module.exports = {
     getDashboardData,
     addCoinsToUser,
     createSession,
-    createBulkSessions
+    createBulkSessions,
+    createExam,
+    createSubject
 };

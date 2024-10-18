@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import toast from 'react-hot-toast';
+import './AdminDashboard.css';
 
 const AdminDashboard = () => {
     const [dashboardData, setDashboardData] = useState(null);
@@ -19,8 +20,40 @@ const AdminDashboard = () => {
     const [selectedSubjects, setSelectedSubjects] = useState([]);
     const [sessionName, setSessionName] = useState('');
     const [bulkSessions, setBulkSessions] = useState('');
+    const [newExamName, setNewExamName] = useState('');
+    const [newSubjectName, setNewSubjectName] = useState('');
     const { getToken } = useAuth();
     const navigate = useNavigate();
+
+    const fetchExams = async () => {
+        try {
+            const token = getToken();
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/exams`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setExams(response.data);
+        } catch (error) {
+            if (error.response) {
+                toast.error(`Failed to fetch exams: ${error.response.data.message || 'Unknown error'}`);
+            } else if (error.request) {
+                toast.error('Failed to fetch exams: No response from server');
+            } else {
+                toast.error(`Failed to fetch exams: ${error.message}`);
+            }
+        }
+    };
+
+    const fetchSubjects = async (examId) => {
+        try {
+            const token = getToken();
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/exams/${examId}/subjects`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setSubjects(response.data);
+        } catch (error) {
+            toast.error('Failed to fetch subjects');
+        }
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -34,21 +67,7 @@ const AdminDashboard = () => {
                     setDashboardData(response.data);
                 }
             } catch (error) {
-                console.error('Error fetching dashboard data:', error);
-            }
-        };
-
-        const fetchExams = async () => {
-            try {
-                const token = getToken();
-                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/exams`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (isMounted) {
-                    setExams(response.data);
-                }
-            } catch (error) {
-                console.error('Error fetching exams:', error);
+                toast.error('Failed to fetch dashboard data');
             }
         };
 
@@ -62,18 +81,7 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         if (selectedExam) {
-            const fetchSubjects = async () => {
-                try {
-                    const token = getToken();
-                    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/exams/${selectedExam}/subjects`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    setSubjects(response.data);
-                } catch (error) {
-                    console.error('Error fetching subjects:', error);
-                }
-            };
-            fetchSubjects();
+            fetchSubjects(selectedExam);
         } else {
             setSubjects([]);
         }
@@ -106,7 +114,6 @@ const AdminDashboard = () => {
             setSessionName('');
             setSelectedSubjects([]);
         } catch (error) {
-            console.error('Error adding session:', error);
             toast.error('Failed to add session');
         }
     };
@@ -127,8 +134,52 @@ const AdminDashboard = () => {
             setBulkSessions('');
             setSelectedSubjects([]);
         } catch (error) {
-            console.error('Error adding sessions:', error);
             toast.error('Failed to add sessions');
+        }
+    };
+
+    const handleAddExam = async () => {
+        if (!newExamName) {
+            toast.error('Please enter an exam name');
+            return;
+        }
+        try {
+            const token = getToken();
+            await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/v1/admin/exams`, 
+                { name: newExamName },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            toast.success('Exam added successfully');
+            setNewExamName('');
+            await fetchExams();
+        } catch (error) {
+            if (error.response) {
+                toast.error(`Failed to add exam: ${error.response.data.message || 'Unknown error'}`);
+            } else if (error.request) {
+                toast.error('Failed to add exam: No response from server');
+            } else {
+                toast.error(`Failed to add exam: ${error.message}`);
+            }
+        }
+    };
+
+    const handleAddSubject = async () => {
+        if (!selectedExam || !newSubjectName) {
+            toast.error('Please select an exam and enter a subject name');
+            return;
+        }
+        try {
+            const token = getToken();
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/admin/exams/${selectedExam}/subjects`, 
+                { name: newSubjectName },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            toast.success('Subject added successfully');
+            setNewSubjectName('');
+            await fetchSubjects(selectedExam);
+        } catch (error) {
+            toast.error('Failed to add subject');
         }
     };
 
@@ -234,6 +285,52 @@ const AdminDashboard = () => {
                         
                         <Button onClick={handleBulkAddSessions} className="bg-[#00BAFA] hover:bg-[#0095c8]">
                             Add Bulk Sessions
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+            <Card className="mt-8 bg-gray-800 border-gray-700">
+                <CardHeader>
+                    <CardTitle className="text-[#00BAFA]">Add Exam</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <Input
+                            placeholder="Exam Name"
+                            value={newExamName}
+                            onChange={(e) => setNewExamName(e.target.value)}
+                            className="text-white placeholder-gray-400"
+                        />
+                        <Button onClick={handleAddExam} className="bg-[#00BAFA] hover:bg-[#0095c8]">
+                            Add Exam
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+            <Card className="mt-8 bg-gray-800 border-gray-700">
+                <CardHeader>
+                    <CardTitle className="text-[#00BAFA]">Add Subject</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <Select onValueChange={setSelectedExam}>
+                            <SelectTrigger className="text-white">
+                                <SelectValue placeholder="Select Exam" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {exams.map(exam => (
+                                    <SelectItem key={exam._id} value={exam._id}>{exam.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Input
+                            placeholder="Subject Name"
+                            value={newSubjectName}
+                            onChange={(e) => setNewSubjectName(e.target.value)}
+                            className="text-white placeholder-gray-400"
+                        />
+                        <Button onClick={handleAddSubject} className="bg-[#00BAFA] hover:bg-[#0095c8]">
+                            Add Subject
                         </Button>
                     </div>
                 </CardContent>
