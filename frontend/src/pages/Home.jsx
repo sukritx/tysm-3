@@ -26,10 +26,6 @@ const PostCard = ({ post, onVote }) => {
 
   const handleVote = async (e, voteType) => {
     e.stopPropagation();
-    if (!isAuthenticated) {
-      console.log("User is not authenticated");
-      return;
-    }
 
     try {
       const token = getToken();
@@ -291,7 +287,6 @@ const Home = () => {
 
       response = await axios.get(`${import.meta.env.VITE_API_URL}${endpoint}`, config);
       
-      console.log("API response:", response.data);
       setPosts(response.data);
       ReactGA.event({
         category: 'Home',

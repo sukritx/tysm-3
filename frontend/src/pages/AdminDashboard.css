@@ -1,0 +1,7 @@
+.custom-checkbox {
+    @apply border-white text-white;
+}
+
+.custom-checkbox:focus {
+    @apply ring-white;
+}
