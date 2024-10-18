@@ -3,9 +3,11 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from '../context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, Share2, ArrowUp, ArrowDown, Image, Send } from "lucide-react";
+import { MessageSquare, Share2, ArrowUp, ArrowDown, Image, Send, LogIn } from "lucide-react";
 import { timeAgo } from '../utils/timeAgo';
 import toast from 'react-hot-toast';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const PostPage = () => {
   const { id } = useParams();
@@ -374,6 +376,23 @@ const PostPage = () => {
             </button>
           </div>
         </div>
+
+        {/* Login prompt for unauthenticated users */}
+        {!isAuthenticated && (
+          <Card className="my-4 bg-blue-100 border-blue-300">
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center">
+                <LogIn className="w-5 h-5 mr-2 text-blue-500" />
+                <span className="text-blue-700">Please log in to comment</span>
+              </div>
+              <Link to="/login">
+                <Button variant="outline" className="bg-blue-500 text-white hover:bg-blue-600">
+                  Log In
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {/* New Comment Box */}
         {isAuthenticated && (
