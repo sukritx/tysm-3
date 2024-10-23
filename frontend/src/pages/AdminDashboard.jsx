@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import toast from 'react-hot-toast';
 import './AdminDashboard.css';
+import { Label } from "@/components/ui/label";
 
 const AdminDashboard = () => {
     const [dashboardData, setDashboardData] = useState(null);
@@ -22,6 +23,17 @@ const AdminDashboard = () => {
     const [bulkSessions, setBulkSessions] = useState('');
     const [newExamName, setNewExamName] = useState('');
     const [newSubjectName, setNewSubjectName] = useState('');
+    const [users, setUsers] = useState([]);
+    const [filteredUsers, setFilteredUsers] = useState([]);
+    const [userSearch, setUserSearch] = useState('');
+    const [selectedUser, setSelectedUser] = useState('');
+    const [postContent, setPostContent] = useState('');
+    const [postImage, setPostImage] = useState(null);
+    const [postExam, setPostExam] = useState('');
+    const [postSubject, setPostSubject] = useState('');
+    const [postSession, setPostSession] = useState('');
+    const [postSubjects, setPostSubjects] = useState([]);
+    const [postSessions, setPostSessions] = useState([]);
     const { getToken } = useAuth();
     const navigate = useNavigate();
 
@@ -51,7 +63,34 @@ const AdminDashboard = () => {
             });
             setSubjects(response.data);
         } catch (error) {
+            console.error('Error fetching subjects:', error);
             toast.error('Failed to fetch subjects');
+        }
+    };
+
+    const fetchPostSubjects = async (examId) => {
+        try {
+            const token = getToken();
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/exams/${examId}/subjects`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setPostSubjects(response.data);
+        } catch (error) {
+            console.error('Error fetching subjects for post:', error);
+            toast.error('Failed to fetch subjects for post');
+        }
+    };
+
+    const fetchPostSessions = async (examId, subjectId) => {
+        try {
+            const token = getToken();
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v2/exams/${examId}/${subjectId}/sessions`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setPostSessions(response.data);
+        } catch (error) {
+            console.error('Error fetching sessions for post:', error);
+            toast.error('Failed to fetch sessions for post');
         }
     };
 
@@ -67,6 +106,7 @@ const AdminDashboard = () => {
                     setDashboardData(response.data);
                 }
             } catch (error) {
+                console.error('Failed to fetch dashboard data:', error);
                 toast.error('Failed to fetch dashboard data');
             }
         };
@@ -85,7 +125,48 @@ const AdminDashboard = () => {
         } else {
             setSubjects([]);
         }
-    }, [selectedExam, getToken]);
+    }, [selectedExam]);
+
+    useEffect(() => {
+        if (postExam) {
+            fetchPostSubjects(postExam);
+        } else {
+            setPostSubjects([]);
+        }
+    }, [postExam]);
+
+    useEffect(() => {
+        if (postExam && postSubject) {
+            fetchPostSessions(postExam, postSubject);
+        } else {
+            setPostSessions([]);
+        }
+    }, [postExam, postSubject]);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const token = getToken();
+                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/admin/users`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setUsers(response.data);
+                setFilteredUsers(response.data);
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                toast.error('Failed to fetch users');
+            }
+        };
+
+        fetchUsers();
+    }, [getToken]);
+
+    useEffect(() => {
+        const filtered = users.filter(user => 
+            user.username.toLowerCase().includes(userSearch.toLowerCase())
+        );
+        setFilteredUsers(filtered);
+    }, [userSearch, users]);
 
     const handleAddCoinClick = () => {
         navigate('/admin/add-coin');
@@ -114,6 +195,7 @@ const AdminDashboard = () => {
             setSessionName('');
             setSelectedSubjects([]);
         } catch (error) {
+            console.error('Failed to add session:', error);
             toast.error('Failed to add session');
         }
     };
@@ -134,6 +216,7 @@ const AdminDashboard = () => {
             setBulkSessions('');
             setSelectedSubjects([]);
         } catch (error) {
+            console.error('Failed to add sessions:', error);
             toast.error('Failed to add sessions');
         }
     };
@@ -179,8 +262,60 @@ const AdminDashboard = () => {
             setNewSubjectName('');
             await fetchSubjects(selectedExam);
         } catch (error) {
+            console.error('Failed to add subject:', error);
             toast.error('Failed to add subject');
         }
+    };
+
+    const handlePostAsUser = async () => {
+        if (!selectedUser || (!postContent.trim() && !postImage)) {
+            toast.error('Please select a user and enter post content or upload an image');
+            return;
+        }
+
+        try {
+            const token = getToken();
+            const formData = new FormData();
+            formData.append('heading', postContent);
+            formData.append('examId', postExam);
+            if (postSubject) formData.append('subjectId', postSubject);
+            if (postSession) formData.append('sessionId', postSession);
+            formData.append('postAsUser', selectedUser);
+            if (postImage) formData.append('image', postImage);
+
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/admin/post-as-user`, formData, {
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            toast.success('Post created successfully');
+            setPostContent('');
+            setPostImage(null);
+            setSelectedUser('');
+            setPostExam('');
+            setPostSubject('');
+            setPostSession('');
+        } catch (error) {
+            console.error('Error creating post:', error);
+            toast.error('Failed to create post');
+        }
+    };
+
+    const handleUserSearch = (e) => {
+        setUserSearch(e.target.value);
+    };
+
+    const handlePostExamChange = (examId) => {
+        setPostExam(examId);
+        setPostSubject('');
+        setPostSession('');
+    };
+
+    const handlePostSubjectChange = (subjectId) => {
+        setPostSubject(subjectId);
+        setPostSession('');
     };
 
     if (!dashboardData) {
@@ -340,6 +475,110 @@ const AdminDashboard = () => {
                     Add Coin to User
                 </Button>
             </div>
+            <Card className="mt-8 bg-gray-800 border-gray-700">
+                <CardHeader>
+                    <CardTitle className="text-[#00BAFA]">Post as User</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="user-search">Search User</Label>
+                            <Input
+                                id="user-search"
+                                type="text"
+                                placeholder="Search for a user"
+                                value={userSearch}
+                                onChange={handleUserSearch}
+                                className="text-white placeholder-gray-400"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="user-select">Select User</Label>
+                            <Select onValueChange={setSelectedUser}>
+                                <SelectTrigger id="user-select" className="text-white">
+                                    <SelectValue placeholder="Select User" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {filteredUsers.map(user => (
+                                        <SelectItem key={user._id} value={user._id}>{user.username}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="exam-select">Select Exam</Label>
+                            <Select onValueChange={handlePostExamChange}>
+                                <SelectTrigger id="exam-select" className="text-white">
+                                    <SelectValue placeholder="Select Exam" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {exams.map(exam => (
+                                        <SelectItem key={exam._id} value={exam._id}>{exam.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {postExam && (
+                            <div>
+                                <Label htmlFor="subject-select">Select Subject (Optional)</Label>
+                                <Select onValueChange={handlePostSubjectChange}>
+                                    <SelectTrigger id="subject-select" className="text-white">
+                                        <SelectValue placeholder="Select Subject" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {postSubjects.map(subject => (
+                                            <SelectItem key={subject._id} value={subject._id}>{subject.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
+                        {postSubject && (
+                            <div>
+                                <Label htmlFor="session-select">Select Session (Optional)</Label>
+                                <Select onValueChange={setPostSession}>
+                                    <SelectTrigger id="session-select" className="text-white">
+                                        <SelectValue placeholder="Select Session" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {postSessions.map(session => (
+                                            <SelectItem key={session._id} value={session._id}>{session.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
+                        <div>
+                            <Label htmlFor="post-content">Post Content</Label>
+                            <Textarea
+                                id="post-content"
+                                placeholder="Enter post content"
+                                value={postContent}
+                                onChange={(e) => setPostContent(e.target.value)}
+                                className="text-white placeholder-gray-400"
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="post-image">Upload Image (Optional)</Label>
+                            <Input
+                                id="post-image"
+                                type="file"
+                                onChange={(e) => setPostImage(e.target.files[0])}
+                                className="text-white"
+                            />
+                        </div>
+
+                        <Button onClick={handlePostAsUser} className="bg-[#00BAFA] hover:bg-[#0095c8]">
+                            Create Post as User
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 };

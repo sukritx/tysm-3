@@ -5,7 +5,9 @@ const {
     createSession, 
     createBulkSessions,
     createExam,
-    createSubject
+    createSubject,
+    getUsers,
+    postAsUser
 } = require("../controllers/adminController");
 
 const router = express.Router();
@@ -16,5 +18,7 @@ router.post("/exams/:examId/create-session", createSession);
 router.post("/exams/:examId/create-bulk-sessions", createBulkSessions);
 router.post("/exams", createExam);
 router.post("/exams/:examId/subjects", createSubject);
+router.get("/users", getUsers);
+router.post("/post-as-user", postAsUser);
 
 module.exports = router;

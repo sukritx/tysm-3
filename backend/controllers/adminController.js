@@ -1,8 +1,10 @@
 const { Account, User } = require("../models/user.model");
+const Post = require("../models/post.model");
 const moment = require("moment");
 const Exam = require('../models/exam.model');
 const Subject = require('../models/subject.model');
 const ExamSession = require('../models/session.model');
+const { fileUpload } = require('../middleware/file-upload');
 
 const getDashboardData = async (req, res) => {
     try {
@@ -239,11 +241,82 @@ const createSubject = async (req, res) => {
     }
 };
 
+const getUsers = async (req, res) => {
+    try {
+        const users = await User.find({}, '_id username');
+        res.status(200).json(users);
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+const postAsUser = async (req, res) => {
+    const upload = fileUpload({ destination: 'posts' });
+
+    upload(req, res, async function(err) {
+        if (err) {
+            console.error("Error uploading file:", err);
+            return res.status(500).json({ error: "Error uploading file", details: err.message });
+        }
+
+        try {
+            const { heading, examId, subjectId, sessionId, postAsUser } = req.body;
+
+            if (!postAsUser) {
+                return res.status(400).json({ message: "Target user is required" });
+            }
+
+            const targetUser = await User.findById(postAsUser);
+            if (!targetUser) {
+                return res.status(404).json({ message: "Target user not found" });
+            }
+
+            if (!examId) {
+                return res.status(400).json({ message: "Exam is required" });
+            }
+
+            let imageUrl = null;
+            if (req.file) {
+                imageUrl = req.file.location;
+            }
+
+            const newPost = new Post({
+                user: targetUser._id,
+                heading,
+                image: imageUrl,
+                exam: examId,
+                subject: subjectId || null,
+                examSession: sessionId || null
+            });
+
+            const savedPost = await newPost.save();
+            
+            await savedPost.populate('exam', 'name');
+            await savedPost.populate('subject', 'name');
+            await savedPost.populate('examSession');
+            await savedPost.populate('user', 'username');
+            
+            const account = await Account.findOne({ userId: savedPost.user._id }, 'avatar');
+            
+            const postWithAvatar = savedPost.toObject();
+            postWithAvatar.user.avatar = account?.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png';
+
+            res.status(201).json(postWithAvatar);
+        } catch (error) {
+            console.error("Error creating post as user:", error);
+            res.status(500).json({ message: "Internal server error", error: error.message });
+        }
+    });
+};
+
 module.exports = {
     getDashboardData,
     addCoinsToUser,
     createSession,
     createBulkSessions,
     createExam,
-    createSubject
+    createSubject,
+    getUsers,
+    postAsUser
 };
