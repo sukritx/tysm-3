@@ -190,7 +190,7 @@ const updateAccount = async (req, res) => {
 };
 
 const uploadAvatar = async (req, res) => {
-    const upload = fileUpload({ destination: 'avatars' }).single('avatar');
+    const upload = fileUpload({ destination: 'avatars' });
 
     upload(req, res, async function(err) {
         if (err) {

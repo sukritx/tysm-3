@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -116,7 +116,7 @@ export default function EditProfile() {
     }
 
     const formData = new FormData();
-    formData.append('avatar', selectedFile);
+    formData.append('image', selectedFile); // Changed from 'avatar' to 'image'
 
     try {
       const token = auth.getToken();
