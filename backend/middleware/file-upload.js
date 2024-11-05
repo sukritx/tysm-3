@@ -16,13 +16,17 @@ const s3Client = new S3Client({
 const MIME_TYPE_MAP = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
-  'image/jpg': 'jpg'
+  'image/jpg': 'jpg',
+  'image/heif': 'heif',
+  'image/heic': 'heic',
+  'image/heif-sequence': 'heif',
+  'image/heic-sequence': 'heic'
 };
 
 const fileUpload = (options = {}) => {
   const { 
     fileType = 'image', 
-    maxSize = 5000000, // Increased to 5MB
+    maxSize = 5000000,
     destination = 'uploads'
   } = options;
 
@@ -47,8 +51,9 @@ const fileUpload = (options = {}) => {
       }
 
       try {
+        let imageBuffer = req.file.buffer;
 
-        const buffer = await sharp(req.file.buffer)
+        const buffer = await sharp(imageBuffer, { failOnError: false })
           .resize({ width: 1000, height: 1000, fit: 'inside' })
           .webp({ quality: 70 })
           .toBuffer();
