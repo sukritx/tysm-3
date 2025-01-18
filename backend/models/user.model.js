@@ -189,6 +189,11 @@ const accountSchema = new mongoose.Schema({
         type: Map,
         of: Date,
         default: new Map()
+    },
+    fakbokFollowingCommunities: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: "fakbokCommunity",
+        default: []
     }
 });
 

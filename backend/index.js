@@ -88,6 +88,8 @@ const postRouter = require("./routes/postRouter.js");
 const commentRouter = require("./routes/commentRouter.js");
 const userAdmissionRouter = require("./routes/userAdmissionRouter.js");
 
+const fakbokRouter = require("./routes/fakbokRouter.js");
+
 const { authMiddleware, adminMiddleware } = require("./middleware/authMiddleware.js");
 // tysm คืนนี้ไปร้านไหน
 app.use("/api/v1/user", userRouter);
@@ -103,6 +105,9 @@ app.use("/api/v2/users", userAdmissionRouter);
 app.use("/api/v2/exams", examRouter);
 app.use("/api/v2/posts", postRouter);
 app.use("/api/v2/comments", commentRouter);
+
+// tysm ฝากบอก
+app.use("/api/v1/fakbok", fakbokRouter);
 
 
 // Scheduled task
