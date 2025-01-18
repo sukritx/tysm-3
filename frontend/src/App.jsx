@@ -4,7 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './PrivateRoute';
 import AdminRoute from './AdminRoute';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
+import Admission from './pages/Admission';
 import Tonight from './pages/Tonight';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -44,7 +44,7 @@ function App() {
           <Navbar />
           <PageViewTracker />
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/admission" element={<Admission />} />
             <Route path="/post/:id" element={<PostPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
