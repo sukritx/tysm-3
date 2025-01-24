@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../config/api';
+import debounce from 'lodash/debounce';
 
 const CreateEditPost = () => {
   const { id } = useParams();
@@ -8,7 +9,9 @@ const CreateEditPost = () => {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [communityName, setCommunityName] = useState('');
+  const [communitySearch, setCommunitySearch] = useState('');
   const [communities, setCommunities] = useState([]);
+  const [showCommunityResults, setShowCommunityResults] = useState(false);
   const [media, setMedia] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showCreateCommunity, setShowCreateCommunity] = useState(false);
@@ -18,8 +21,42 @@ const CreateEditPost = () => {
     rules: [''],
   });
 
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce(async (searchQuery) => {
+      try {
+        const response = await apiClient.get(`/fakbok/communities/search?query=${searchQuery}`);
+        setCommunities(response.data);
+      } catch (error) {
+        console.error('Error searching communities:', error);
+      }
+    }, 300),
+    []
+  );
+
+  // Handle community search input
+  const handleCommunitySearch = (e) => {
+    const value = e.target.value;
+    setCommunitySearch(value);
+    setShowCommunityResults(true);
+    if (value.trim()) {
+      debouncedSearch(value);
+    } else {
+      // If search is empty, fetch popular communities
+      debouncedSearch('');
+    }
+  };
+
+  // Handle community selection
+  const handleCommunitySelect = (community) => {
+    setCommunityName(community.name);
+    setCommunitySearch(community.name);
+    setShowCommunityResults(false);
+  };
+
   useEffect(() => {
-    fetchCommunities();
+    // Initial fetch of popular communities
+    debouncedSearch('');
     if (id) {
       fetchPostDetails();
     }
@@ -103,44 +140,61 @@ const CreateEditPost = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-3xl">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">
+    <div className="container mx-auto p-4 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-6">
         {id ? 'Edit Post' : 'Create New Post'}
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
+        {/* Community Search Section */}
+        <div className="relative">
           <label className="block text-gray-700 font-medium mb-2">Community</label>
-          <div className="flex space-x-4">
-            <select
-              value={communityName}
-              onChange={(e) => setCommunityName(e.target.value)}
-              className="flex-grow p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-            >
-              <option value="">Select a community</option>
+          <input
+            type="text"
+            value={communitySearch}
+            onChange={handleCommunitySearch}
+            onFocus={() => setShowCommunityResults(true)}
+            className="w-full p-3 border border-gray-300 rounded text-black"
+            placeholder="Search for a community..."
+          />
+          
+          {/* Community Search Results */}
+          {showCommunityResults && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto">
               {communities.map((community) => (
-                <option key={community.id} value={community.name}>
-                  {community.name}
-                </option>
+                <div
+                  key={community._id}
+                  className="p-3 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => handleCommunitySelect(community)}
+                >
+                  <div className="font-medium text-black">{community.name}</div>
+                  <div className="text-sm text-gray-500">
+                    {community.followersCount} members
+                  </div>
+                </div>
               ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => setShowCreateCommunity(true)}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
-            >
-              New Community
-            </button>
-          </div>
+              <div
+                className="p-3 text-blue-500 hover:bg-gray-100 cursor-pointer border-t"
+                onClick={() => {
+                  setShowCreateCommunity(true);
+                  setShowCommunityResults(false);
+                  setNewCommunityData({ ...newCommunityData, name: communitySearch });
+                }}
+              >
+                Create community "{communitySearch}"
+              </div>
+            </div>
+          )}
         </div>
 
+        {/* Rest of your existing form fields */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">Title</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder-gray-500"
+            className="w-full p-3 border border-gray-300 rounded text-black"
             placeholder="Enter post title"
             required
           />
@@ -151,7 +205,7 @@ const CreateEditPost = () => {
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[200px] text-black placeholder-gray-500"
+            className="w-full p-3 border border-gray-300 rounded text-black min-h-[200px]"
             placeholder="Write your post content here..."
             required
           />
@@ -162,7 +216,7 @@ const CreateEditPost = () => {
           <input
             type="file"
             onChange={(e) => setMedia(e.target.files[0])}
-            className="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded"
             accept="image/*,video/*"
           />
         </div>
@@ -180,41 +234,43 @@ const CreateEditPost = () => {
             disabled={loading}
             className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition disabled:opacity-50"
           >
-            {loading ? 'Saving...' : id ? 'Update Post' : 'Create Post'}
+            {loading ? 'Posting...' : id ? 'Update Post' : 'Create Post'}
           </button>
         </div>
       </form>
 
       {/* Create Community Modal */}
       {showCreateCommunity && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Create New Community</h2>
-            <form onSubmit={handleCreateCommunity} className="space-y-4">
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Name</label>
-                <input
-                  type="text"
-                  value={newCommunityData.name}
-                  onChange={(e) =>
-                    setNewCommunityData({ ...newCommunityData, name: e.target.value })
-                  }
-                  className="w-full p-3 border border-gray-300 rounded text-black"
-                  required
-                />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full">
+            <h2 className="text-2xl font-bold mb-4">Create New Community</h2>
+            <form onSubmit={handleCreateCommunity}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={newCommunityData.name}
+                    onChange={(e) =>
+                      setNewCommunityData({ ...newCommunityData, name: e.target.value })
+                    }
+                    className="w-full p-3 border border-gray-300 rounded text-black"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Description</label>
+                  <textarea
+                    value={newCommunityData.description}
+                    onChange={(e) =>
+                      setNewCommunityData({ ...newCommunityData, description: e.target.value })
+                    }
+                    className="w-full p-3 border border-gray-300 rounded text-black"
+                    required
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Description</label>
-                <textarea
-                  value={newCommunityData.description}
-                  onChange={(e) =>
-                    setNewCommunityData({ ...newCommunityData, description: e.target.value })
-                  }
-                  className="w-full p-3 border border-gray-300 rounded text-black"
-                  required
-                />
-              </div>
-              <div className="flex justify-end space-x-4">
+              <div className="flex justify-end space-x-4 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowCreateCommunity(false)}
@@ -224,7 +280,7 @@ const CreateEditPost = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                 >
                   Create Community
                 </button>

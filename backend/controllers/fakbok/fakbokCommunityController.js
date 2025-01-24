@@ -88,6 +88,36 @@ const leaveCommunity = async (req, res) => {
     }
 };
 
+// Search communities
+const searchCommunities = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) {
+            // If no query, return popular communities (by follower count)
+            const communities = await fakbokCommunity
+                .find()
+                .sort({ followersCount: -1 })
+                .limit(5);
+            return res.json(communities);
+        }
+
+        // Search by name or description containing the query (case-insensitive)
+        const communities = await fakbokCommunity
+            .find({
+                $or: [
+                    { name: { $regex: query, $options: 'i' } },
+                    { description: { $regex: query, $options: 'i' } }
+                ]
+            })
+            .sort({ followersCount: -1 }) // Sort by popularity
+            .limit(5); // Limit results
+
+        res.json(communities);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     createCommunity,
     getAllCommunities,
@@ -96,4 +126,5 @@ module.exports = {
     deleteCommunity,
     joinCommunity,
     leaveCommunity,
+    searchCommunities
 };
