@@ -1,5 +1,14 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import HomePage from './pages/fakbok/Home';
+import CommunityListPage from './pages/fakbok/CommunityList';
+import CommunityDetailPage from './pages/fakbok/CommunityDetail';
+import PostListPage from './pages/fakbok/PostList';
+import PostDetailPage from './pages/fakbok/PostDetail';
+import CreateEditCommunityPage from './pages/fakbok/CreateEditCommunity';
+import CreateEditPostPage from './pages/fakbok/CreateEditPost';
+import NotificationsPage from './pages/fakbok/Notifications';
+import SearchPage from './pages/fakbok/Search';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './PrivateRoute';
 import AdminRoute from './AdminRoute';
@@ -44,6 +53,17 @@ function App() {
           <Navbar />
           <PageViewTracker />
           <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/communities" element={<CommunityListPage />} />
+            <Route path="/communities/:id" element={<CommunityDetailPage />} />
+            <Route path="/posts" element={<PostListPage />} />
+            <Route path="/posts/:id" element={<PostDetailPage />} />
+            <Route path="/create-community" element={<CreateEditCommunityPage />} />
+            <Route path="/edit-community/:id" element={<CreateEditCommunityPage />} />
+            <Route path="/create-post" element={<CreateEditPostPage />} />
+            <Route path="/edit-post/:id" element={<CreateEditPostPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/search" element={<SearchPage />} />
             <Route path="/admission" element={<Admission />} />
             <Route path="/post/:id" element={<PostPage />} />
             <Route path="/login" element={<Login />} />
