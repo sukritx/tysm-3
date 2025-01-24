@@ -88,7 +88,7 @@ const postRouter = require("./routes/postRouter.js");
 const commentRouter = require("./routes/commentRouter.js");
 const userAdmissionRouter = require("./routes/userAdmissionRouter.js");
 
-const fakbokRouter = require("./routes/fakbokRouter.js");
+const fakbokRouter = require("./routes/fakbok/fakbokRouter.js");
 
 const { authMiddleware, adminMiddleware } = require("./middleware/authMiddleware.js");
 // tysm คืนนี้ไปร้านไหน

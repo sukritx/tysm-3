@@ -4,8 +4,8 @@ const { fakbokCommunity } = require('../../models/fakbok/fakbokCommunity.model')
 // Create a new community
 const createCommunity = async (req, res) => {
     try {
-        const { name } = req.body;
-        const community = new fakbokCommunity({ name });
+        const { name, description, rules, logo, banner } = req.body;
+        const community = new fakbokCommunity({ name, description, rules, logo, banner, moderators });
         await community.save();
         res.status(201).json(community);
     } catch (error) {
@@ -37,8 +37,8 @@ const getCommunityById = async (req, res) => {
 // Update a community
 const updateCommunity = async (req, res) => {
     try {
-        const { name } = req.body;
-        const community = await fakbokCommunity.findByIdAndUpdate(req.params.id, { name }, { new: true });
+        const { name, description, rules, logo, banner, moderators } = req.body;
+        const community = await fakbokCommunity.findByIdAndUpdate(req.params.id, { name, description, rules, logo, banner, moderators }, { new: true });
         if (!community) return res.status(404).json({ error: 'Community not found' });
         res.json(community);
     } catch (error) {
@@ -57,29 +57,25 @@ const deleteCommunity = async (req, res) => {
     }
 };
 
-// Follow a community
-const followCommunity = async (req, res) => {
+// Join a community
+const joinCommunity = async (req, res) => {
     try {
         const community = await fakbokCommunity.findById(req.params.id);
         if (!community) return res.status(404).json({ error: 'Community not found' });
-        community.followersCount += 1;
-        await community.save();
-        res.json(community);
+        // Logic to add user to community
+        res.json({ message: 'Joined community' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-// Unfollow a community
-const unfollowCommunity = async (req, res) => {
+// Leave a community
+const leaveCommunity = async (req, res) => {
     try {
         const community = await fakbokCommunity.findById(req.params.id);
         if (!community) return res.status(404).json({ error: 'Community not found' });
-        if (community.followersCount > 0) {
-            community.followersCount -= 1;
-        }
-        await community.save();
-        res.json(community);
+        // Logic to remove user from community
+        res.json({ message: 'Left community' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -91,6 +87,6 @@ module.exports = {
     getCommunityById,
     updateCommunity,
     deleteCommunity,
-    followCommunity,
-    unfollowCommunity
+    joinCommunity,
+    leaveCommunity,
 };

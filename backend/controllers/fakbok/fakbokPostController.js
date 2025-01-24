@@ -7,9 +7,8 @@ const { fileUpload } = require('../../middleware/file-upload');
 // Create a new post
 const createPost = [fileUpload({ fileType: 'image', maxSize: 5000000, destination: 'fakbok/posts' }), async (req, res) => {
     try {
-        const { title, body, author, community, link } = req.body;
-        const media = req.file ? [req.file.location] : [];
-        const post = new fakbokPost({ title, body, author, community, media, link });
+        const { title, body, author_id, community_id, media_url } = req.body;
+        const post = new fakbokPost({ title, body, author_id, community_id, media_url });
         await post.save();
         res.status(201).json(post);
     } catch (error) {
@@ -23,6 +22,16 @@ const getAllPosts = async (req, res) => {
         const { sortBy } = req.query;
         const sortOptions = sortBy === 'upvotes' ? { upvotes: -1 } : { createdAt: -1 };
         const posts = await fakbokPost.find().sort(sortOptions);
+        res.json(posts);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get all posts in a specific community
+const getAllPostsInCommunity = async (req, res) => {
+    try {
+        const posts = await fakbokPost.find({ community_id: req.params.id }).sort({ createdAt: -1 });
         res.json(posts);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -92,6 +101,7 @@ const downvotePost = async (req, res) => {
 module.exports = {
     createPost,
     getAllPosts,
+    getAllPostsInCommunity,
     getPostById,
     updatePost,
     deletePost,
