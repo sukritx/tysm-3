@@ -15,7 +15,7 @@ const CreateEditPost = () => {
   const [newCommunityData, setNewCommunityData] = useState({
     name: '',
     description: '',
-    rules: []
+    rules: [''],
   });
 
   useEffect(() => {
@@ -73,13 +73,32 @@ const CreateEditPost = () => {
 
   const handleCreateCommunity = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!newCommunityData.name.trim()) {
+      console.error('Community name is required');
+      return;
+    }
+
     try {
-      await apiClient.post('/fakbok/communities/create', newCommunityData);
-      setCommunityName(newCommunityData.name);
+      const dataToSend = {
+        name: newCommunityData.name.trim(),
+        description: newCommunityData.description.trim(),
+        rules: newCommunityData.rules.filter(rule => rule.trim()),
+        moderators: []
+      };
+
+      const response = await apiClient.post('/fakbok/communities/create', dataToSend);
+      console.log('Community created successfully:', response.data);
+      setCommunityName(dataToSend.name);
       setShowCreateCommunity(false);
       fetchCommunities();
     } catch (error) {
       console.error('Error creating community:', error);
+      if (error.response) {
+        // Log the detailed error response
+        console.error('Error details:', error.response.data);
+      }
     }
   };
 
