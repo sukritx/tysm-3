@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const fakbokCommunitySchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   description: { type: String },
-  rules: { type: String },
+  rules: [{ type: String }],
   logo: { type: String },
   banner: { type: String },
   moderators: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', required: false },

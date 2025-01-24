@@ -4,8 +4,15 @@ const { fakbokCommunity } = require('../../models/fakbok/fakbokCommunity.model')
 // Create a new community
 const createCommunity = async (req, res) => {
     try {
-        const { name, description, rules, logo, banner } = req.body;
-        const community = new fakbokCommunity({ name, description, rules, logo, banner, moderators });
+        const { name, description, rules, logo, banner, moderators = [] } = req.body;
+        const community = new fakbokCommunity({ 
+            name, 
+            description, 
+            rules, 
+            logo, 
+            banner, 
+            moderators 
+        });
         await community.save();
         res.status(201).json(community);
     } catch (error) {
