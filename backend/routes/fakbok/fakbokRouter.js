@@ -1,6 +1,6 @@
 const express = require('express');
 const { createPost, getAllPosts, getAllPostsInCommunity, getPostById, updatePost, deletePost, upvotePost, downvotePost } = require('../../controllers/fakbok/fakbokPostController');
-const { createComment, getCommentsForPost, updateComment, deleteComment, upvoteComment, downvoteComment } = require('../../controllers/fakbok/fakbokCommentController');
+const { createComment, getCommentsForPost, updateComment, deleteComment, voteComment } = require('../../controllers/fakbok/fakbokCommentController');
 const { 
     createCommunity, 
     getAllCommunities, 
@@ -39,7 +39,6 @@ router.post('/posts/:postId/comments', createComment);
 router.get('/posts/:postId/comments', getCommentsForPost);
 router.put('/comments/:id', updateComment);
 router.delete('/comments/:id', deleteComment);
-router.post('/comments/:id/upvote', upvoteComment);
-router.post('/comments/:id/downvote', downvoteComment);
+router.post('/comments/:commentId/vote', voteComment);
 
 module.exports = router;

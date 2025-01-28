@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaArrowUp, FaArrowDown, FaArrowLeft, FaComment } from 'react-icons/fa';
 import apiClient from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
@@ -48,7 +48,7 @@ const PostView = () => {
     setVotingInProgress(true);
     try {
       const response = await apiClient.post(`/fakbok/posts/${postId}/${voteType}`, {
-        userId: user._id
+        userId: user.id
       });
       setPost(response.data);
     } catch (error) {
@@ -71,12 +71,18 @@ const PostView = () => {
     try {
       const response = await apiClient.post(`/fakbok/posts/${postId}/comments`, {
         body: newComment.trim(),
-        author_id: user._id,
+        author_id: user.id,
         post_id: postId
       });
 
-      setComments([response.data, ...comments]);
-      setNewComment('');
+      // Only add the comment if it has valid author information
+      if (response.data && response.data.author_id) {
+        setComments(prevComments => [response.data, ...prevComments]);
+        setNewComment('');
+      } else {
+        console.error('Received comment without author:', response.data);
+        alert('Error: Comment was created but author information is missing');
+      }
     } catch (error) {
       console.error('Error posting comment:', error);
       alert(error.response?.data?.error || 'Failed to post comment');
@@ -85,8 +91,39 @@ const PostView = () => {
 
   const getVoteStatus = (post) => {
     if (!user || !post) return 'none';
-    if (post.upvotes?.includes(user._id)) return 'upvoted';
-    if (post.downvotes?.includes(user._id)) return 'downvoted';
+    if (post.upvotes?.includes(user.id)) return 'upvoted';
+    if (post.downvotes?.includes(user.id)) return 'downvoted';
+    return 'none';
+  };
+
+  const handleCommentVote = async (commentId, voteType) => {
+    if (!user) {
+      alert('Please log in to vote');
+      return;
+    }
+
+    try {
+      const response = await apiClient.post(`/fakbok/comments/${commentId}/vote`, {
+        userId: user.id,
+        voteType
+      });
+
+      // Update the comment in the comments list
+      setComments(prevComments =>
+        prevComments.map(comment =>
+          comment._id === commentId ? response.data : comment
+        )
+      );
+    } catch (error) {
+      console.error('Error voting on comment:', error);
+      alert(error.response?.data?.error || 'Failed to vote on comment');
+    }
+  };
+
+  const getCommentVoteStatus = (comment) => {
+    if (!user) return 'none';
+    if (comment.upvotes?.includes(user.id)) return 'upvoted';
+    if (comment.downvotes?.includes(user.id)) return 'downvoted';
     return 'none';
   };
 
@@ -221,10 +258,72 @@ const PostView = () => {
         <div className="space-y-4">
           {comments.map((comment) => (
             <div key={comment._id} className="bg-gray-50 rounded-lg p-4">
-              <p className="text-sm text-gray-500 mb-2">
-                {comment.author_id?.username || 'Unknown'} • {new Date(comment.createdAt).toLocaleDateString()}
-              </p>
-              <p className="text-gray-700">{comment.body}</p>
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <Link to={`/${comment.author_id?.username}`}>
+                    {comment.author_id?.avatar ? (
+                      <img
+                        src={comment.author_id.avatar}
+                        alt={comment.author_id.username}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                        <span className="text-gray-600 text-lg">
+                          {comment.author_id?.username?.[0]?.toUpperCase() || '?'}
+                        </span>
+                      </div>
+                    )}
+                  </Link>
+                </div>
+                <div className="flex-grow">
+                  <div className="flex items-center mb-1">
+                    <Link 
+                      to={`/${comment.author_id?.username}`}
+                      className="font-semibold text-blue-600 hover:text-blue-800"
+                    >
+                      {comment.author_id?.username || 
+                       (comment.author_id?.firstName && comment.author_id?.lastName 
+                        ? `${comment.author_id.firstName} ${comment.author_id.lastName}`
+                        : 'Unknown')}
+                    </Link>
+                  </div>
+                  <p className="text-gray-700 mb-2">{comment.body}</p>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleCommentVote(comment._id, getCommentVoteStatus(comment) === 'upvoted' ? 'none' : 'upvote')}
+                      className={`p-1 rounded transition-colors ${
+                        getCommentVoteStatus(comment) === 'upvoted'
+                          ? 'text-orange-500 bg-orange-100'
+                          : 'text-gray-500 hover:text-orange-500 hover:bg-orange-50'
+                      }`}
+                    >
+                      <FaArrowUp />
+                    </button>
+                    <span className={`text-sm font-semibold ${
+                      getCommentVoteStatus(comment) === 'upvoted' ? 'text-orange-500' : 'text-gray-600'
+                    }`}>
+                      {comment.upvotes?.length || 0}
+                    </span>
+                    <span className="text-sm text-gray-400 mx-1">|</span>
+                    <span className={`text-sm font-semibold ${
+                      getCommentVoteStatus(comment) === 'downvoted' ? 'text-blue-500' : 'text-gray-600'
+                    }`}>
+                      {comment.downvotes?.length || 0}
+                    </span>
+                    <button
+                      onClick={() => handleCommentVote(comment._id, getCommentVoteStatus(comment) === 'downvoted' ? 'none' : 'downvote')}
+                      className={`p-1 rounded transition-colors ${
+                        getCommentVoteStatus(comment) === 'downvoted'
+                          ? 'text-blue-500 bg-blue-100'
+                          : 'text-gray-500 hover:text-blue-500 hover:bg-blue-50'
+                      }`}
+                    >
+                      <FaArrowDown />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
           {comments.length === 0 && (

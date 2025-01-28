@@ -199,7 +199,7 @@ const HomePage = () => {
                   )}
                   <div className="flex items-center text-gray-500">
                     <FaComment className="mr-1" />
-                    <span className="text-sm">{post.comments?.length || 0} comments</span>
+                    <span className="text-sm">{post.commentsCount || 0} comments</span>
                   </div>
                 </div>
               </div>
