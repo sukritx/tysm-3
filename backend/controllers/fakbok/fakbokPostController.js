@@ -8,17 +8,36 @@ const { fileUpload } = require('../../middleware/file-upload');
 const createPost = [fileUpload({ fileType: 'image', maxSize: 5000000, destination: 'fakbok/posts' }), async (req, res) => {
     try {
         const { title, body, author_id, community_id, media_url } = req.body;
+
+        // Create and save the post
         const post = new fakbokPost({ 
             title, 
             body, 
             author_id, 
             community_id, 
             media_url,
-            commentsCount: 0 
+            commentsCount: 0,
+            upvotes: [],
+            downvotes: []
         });
+        
         await post.save();
+
+        // Populate author and community details
+        await post.populate([
+            {
+                path: 'author_id',
+                select: 'username email firstName lastName'
+            },
+            {
+                path: 'community_id',
+                select: 'name description'
+            }
+        ]);
+
         res.status(201).json(post);
     } catch (error) {
+        console.error('Error in createPost:', error);
         res.status(400).json({ error: error.message });
     }
 }];
@@ -31,7 +50,7 @@ const getAllPosts = async (req, res) => {
         
         // Get all posts
         const posts = await fakbokPost.find()
-            .populate('author_id', 'username')
+            .populate('author_id', 'username email firstName lastName')
             .populate('community_id', 'name description')
             .sort(sortOptions);
 
@@ -54,7 +73,7 @@ const getAllPosts = async (req, res) => {
 const getAllPostsInCommunity = async (req, res) => {
     try {
         const posts = await fakbokPost.find({ community_id: req.params.id })
-            .populate('author_id', 'username')
+            .populate('author_id', 'username email firstName lastName')
             .populate('community_id', 'name description')
             .sort({ createdAt: -1 });
 
@@ -77,7 +96,7 @@ const getAllPostsInCommunity = async (req, res) => {
 const getPostById = async (req, res) => {
     try {
         const post = await fakbokPost.findById(req.params.id)
-            .populate('author_id', 'username')
+            .populate('author_id', 'username email firstName lastName')
             .populate('community_id', 'name description');
 
         if (!post) return res.status(404).json({ error: 'Post not found' });

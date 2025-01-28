@@ -113,7 +113,7 @@ const CreateEditPost = () => {
     formData.append('community_id', selectedCommunity._id);
     
     // Use the user ID from the auth context
-    formData.append('author_id', user._id);
+    formData.append('author_id', user.id);
 
     if (media) {
       formData.append('media', media);
