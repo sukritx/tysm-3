@@ -59,7 +59,7 @@ const HomePage = () => {
         <h2 className="text-xl font-semibold text-gray-700">Trending Communities</h2>
         <div className="flex space-x-2 overflow-x-auto">
           {communities.map((community) => (
-            <div key={community.id} className="p-2 border rounded shadow bg-gray-100">
+            <div key={community._id} className="p-2 border rounded shadow bg-gray-100">
               <h3 className="font-bold text-gray-800">{community.name}</h3>
             </div>
           ))}
@@ -74,7 +74,7 @@ const HomePage = () => {
 
       <div className="grid grid-cols-1 gap-4">
         {posts.map((post) => (
-          <div key={post.id} className="p-4 border rounded-lg shadow-md bg-gray-100">
+          <div key={post._id} className="p-4 border rounded-lg shadow-md bg-gray-100">
             <h2 className="text-xl font-semibold text-gray-800">{post.title}</h2>
             <p className="text-gray-700">{post.body}</p>
             <p className="text-sm text-gray-500">Upvotes: {post.upvotes}</p>

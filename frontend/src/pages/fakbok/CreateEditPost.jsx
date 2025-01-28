@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../config/api';
 import debounce from 'lodash/debounce';
+import { useAuth } from '../../context/AuthContext';
 
 const CreateEditPost = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [communityName, setCommunityName] = useState('');
@@ -84,12 +86,35 @@ const CreateEditPost = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!title || !body || !communityName) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    if (!user) {
+      alert('You must be logged in to create a post');
+      navigate('/login'); // Redirect to login page
+      return;
+    }
+    
     setLoading(true);
 
     const formData = new FormData();
     formData.append('title', title);
     formData.append('body', body);
-    formData.append('communityName', communityName);
+    
+    // Get the community ID from the selected community
+    const selectedCommunity = communities.find(c => c.name === communityName);
+    if (!selectedCommunity) {
+      alert('Please select a valid community');
+      setLoading(false);
+      return;
+    }
+    formData.append('community_id', selectedCommunity._id);
+    
+    // Use the user ID from the auth context
+    formData.append('author_id', user._id);
+
     if (media) {
       formData.append('media', media);
     }
@@ -103,6 +128,7 @@ const CreateEditPost = () => {
       navigate('/');
     } catch (error) {
       console.error('Error saving post:', error);
+      alert(error.response?.data?.error || 'Error creating post');
     } finally {
       setLoading(false);
     }
