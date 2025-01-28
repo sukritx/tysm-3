@@ -28,6 +28,7 @@ import Sales from './pages/Sales';
 import AdminDashboard from './pages/AdminDashboard';
 import AddCoin from './pages/AddCoin';
 import PostPage from './pages/PostPage';
+import PostView from './pages/fakbok/PostView';
 
 import ReactGA from 'react-ga4';
 
@@ -62,6 +63,7 @@ function App() {
             <Route path="/edit-community/:id" element={<CreateEditCommunityPage />} />
             <Route path="/create-post" element={<CreateEditPostPage />} />
             <Route path="/edit-post/:id" element={<CreateEditPostPage />} />
+            <Route path="/post/:postId" element={<PostView />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/admission" element={<Admission />} />

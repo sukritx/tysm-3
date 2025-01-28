@@ -5,7 +5,7 @@ const fakbokPostSchema = new mongoose.Schema({
     body: { type: String, required: true },
     media_url: { type: String },
     author_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    community_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Community', required: true },
+    community_id: { type: mongoose.Schema.Types.ObjectId, ref: 'fakbokCommunity', required: true },
     upvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     downvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     commentsCount: { type: Number, default: 0 },

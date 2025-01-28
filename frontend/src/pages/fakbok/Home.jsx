@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
-import { FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { FaArrowUp, FaArrowDown, FaComment } from 'react-icons/fa';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -39,7 +39,8 @@ const HomePage = () => {
     fetchCommunities();
   }, [sortOption]);
 
-  const handleVote = async (postId, voteType) => {
+  const handleVote = async (e, postId, voteType) => {
+    e.stopPropagation(); // Prevent post click when voting
     if (!user) {
       alert('Please log in to vote');
       return;
@@ -74,6 +75,10 @@ const HomePage = () => {
     if (post.upvotes?.includes(user._id)) return 'upvoted';
     if (post.downvotes?.includes(user._id)) return 'downvoted';
     return 'none';
+  };
+
+  const handlePostClick = (postId) => {
+    navigate(`/post/${postId}`);
   };
 
   return (
@@ -140,11 +145,15 @@ const HomePage = () => {
         {posts.map((post) => {
           const voteStatus = getVoteStatus(post);
           return (
-            <div key={post._id} className="p-4 border rounded-lg shadow-md bg-gray-100">
-              <div className="flex items-center space-x-4">
+            <div 
+              key={post._id} 
+              className="p-4 border rounded-lg shadow-md bg-gray-100 hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => handlePostClick(post._id)}
+            >
+              <div className="flex items-start space-x-4">
                 <div className="flex flex-col items-center">
                   <button
-                    onClick={() => handleVote(post._id, 'upvote')}
+                    onClick={(e) => handleVote(e, post._id, 'upvote')}
                     disabled={votingInProgress[post._id]}
                     className={`p-1 rounded transition-colors ${
                       voteStatus === 'upvoted'
@@ -163,7 +172,7 @@ const HomePage = () => {
                     {(post.upvotes?.length || 0) - (post.downvotes?.length || 0)}
                   </span>
                   <button
-                    onClick={() => handleVote(post._id, 'downvote')}
+                    onClick={(e) => handleVote(e, post._id, 'downvote')}
                     disabled={votingInProgress[post._id]}
                     className={`p-1 rounded transition-colors ${
                       voteStatus === 'downvoted'
@@ -176,8 +185,22 @@ const HomePage = () => {
                   </button>
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-gray-800">{post.title}</h2>
-                  <p className="text-gray-700">{post.body}</p>
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2">{post.title}</h2>
+                  <p className="text-gray-700 mb-3">{post.body}</p>
+                  {post.media_url && (
+                    <div className="mb-3">
+                      <img
+                        src={post.media_url}
+                        alt="Post content"
+                        className="max-w-full h-auto rounded-lg"
+                        style={{ maxHeight: '400px', objectFit: 'contain' }}
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-center text-gray-500">
+                    <FaComment className="mr-1" />
+                    <span className="text-sm">{post.comments?.length || 0} comments</span>
+                  </div>
                 </div>
               </div>
             </div>

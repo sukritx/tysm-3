@@ -41,10 +41,13 @@ const getAllPostsInCommunity = async (req, res) => {
 // Get a specific post by ID
 const getPostById = async (req, res) => {
     try {
-        const post = await fakbokPost.findById(req.params.id).populate('author community');
+        const post = await fakbokPost.findById(req.params.id)
+            .populate('author_id', 'username') // Populate author username
+            .populate('community_id', 'name description'); // Populate community details
         if (!post) return res.status(404).json({ error: 'Post not found' });
         res.json(post);
     } catch (error) {
+        console.error('Error in getPostById:', error);
         res.status(500).json({ error: error.message });
     }
 };
