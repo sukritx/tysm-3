@@ -77,7 +77,23 @@ const upvotePost = async (req, res) => {
     try {
         const post = await fakbokPost.findById(req.params.id);
         if (!post) return res.status(404).json({ error: 'Post not found' });
-        post.upvotes.push(req.body.userId);
+        
+        const userId = req.body.userId;
+        const upvoteIndex = post.upvotes.indexOf(userId);
+        const downvoteIndex = post.downvotes.indexOf(userId);
+
+        // Remove from downvotes if exists
+        if (downvoteIndex !== -1) {
+            post.downvotes.splice(downvoteIndex, 1);
+        }
+
+        // Toggle upvote
+        if (upvoteIndex === -1) {
+            post.upvotes.push(userId);
+        } else {
+            post.upvotes.splice(upvoteIndex, 1);
+        }
+
         await post.save();
         res.json(post);
     } catch (error) {
@@ -90,7 +106,23 @@ const downvotePost = async (req, res) => {
     try {
         const post = await fakbokPost.findById(req.params.id);
         if (!post) return res.status(404).json({ error: 'Post not found' });
-        post.downvotes.push(req.body.userId);
+        
+        const userId = req.body.userId;
+        const upvoteIndex = post.upvotes.indexOf(userId);
+        const downvoteIndex = post.downvotes.indexOf(userId);
+
+        // Remove from upvotes if exists
+        if (upvoteIndex !== -1) {
+            post.upvotes.splice(upvoteIndex, 1);
+        }
+
+        // Toggle downvote
+        if (downvoteIndex === -1) {
+            post.downvotes.push(userId);
+        } else {
+            post.downvotes.splice(downvoteIndex, 1);
+        }
+
         await post.save();
         res.json(post);
     } catch (error) {

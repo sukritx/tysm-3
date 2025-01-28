@@ -2,13 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
+import { FaArrowUp, FaArrowDown } from 'react-icons/fa';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [communities, setCommunities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('new');
+  const [votingInProgress, setVotingInProgress] = useState({});
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -35,12 +39,49 @@ const HomePage = () => {
     fetchCommunities();
   }, [sortOption]);
 
+  const handleVote = async (postId, voteType) => {
+    if (!user) {
+      alert('Please log in to vote');
+      return;
+    }
+
+    // Prevent multiple votes while processing
+    if (votingInProgress[postId]) {
+      return;
+    }
+
+    setVotingInProgress(prev => ({ ...prev, [postId]: true }));
+
+    try {
+      const response = await apiClient.post(`/fakbok/posts/${postId}/${voteType}`, {
+        userId: user._id
+      });
+      
+      // Update the posts list with the updated post
+      setPosts(posts.map(post => 
+        post._id === postId ? response.data : post
+      ));
+    } catch (error) {
+      console.error(`Error ${voteType}ing post:`, error);
+      alert(error.response?.data?.error || `Failed to ${voteType} post`);
+    } finally {
+      setVotingInProgress(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const getVoteStatus = (post) => {
+    if (!user) return 'none';
+    if (post.upvotes?.includes(user._id)) return 'upvoted';
+    if (post.downvotes?.includes(user._id)) return 'downvoted';
+    return 'none';
+  };
+
   return (
     <div className="container mx-auto p-4 bg-white">
       <h1 className="text-3xl font-bold mb-4 text-gray-800">Global Feed</h1>
       <button
         onClick={() => navigate('/create-post')}
-        className="mb-4 p-2 bg-green-500 text-white rounded"
+        className="mb-4 p-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
       >
         Create Post
       </button>
@@ -52,7 +93,9 @@ const HomePage = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <button className="ml-2 p-2 bg-blue-600 text-white rounded">Search</button>
+        <button className="ml-2 p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+          Search
+        </button>
       </div>
 
       <div className="mb-4">
@@ -67,19 +110,79 @@ const HomePage = () => {
       </div>
 
       <div className="mb-4">
-        <button onClick={() => setSortOption('new')} className="mr-2 p-2 bg-blue-500 text-white rounded">New</button>
-        <button onClick={() => setSortOption('hot')} className="mr-2 p-2 bg-blue-500 text-white rounded">Hot</button>
-        <button onClick={() => setSortOption('top')} className="p-2 bg-blue-500 text-white rounded">Top</button>
+        <button 
+          onClick={() => setSortOption('new')} 
+          className={`mr-2 p-2 text-white rounded transition-colors ${
+            sortOption === 'new' ? 'bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
+          }`}
+        >
+          New
+        </button>
+        <button 
+          onClick={() => setSortOption('hot')} 
+          className={`mr-2 p-2 text-white rounded transition-colors ${
+            sortOption === 'hot' ? 'bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
+          }`}
+        >
+          Hot
+        </button>
+        <button 
+          onClick={() => setSortOption('top')} 
+          className={`p-2 text-white rounded transition-colors ${
+            sortOption === 'top' ? 'bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
+          }`}
+        >
+          Top
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {posts.map((post) => (
-          <div key={post._id} className="p-4 border rounded-lg shadow-md bg-gray-100">
-            <h2 className="text-xl font-semibold text-gray-800">{post.title}</h2>
-            <p className="text-gray-700">{post.body}</p>
-            <p className="text-sm text-gray-500">Upvotes: {post.upvotes}</p>
-          </div>
-        ))}
+        {posts.map((post) => {
+          const voteStatus = getVoteStatus(post);
+          return (
+            <div key={post._id} className="p-4 border rounded-lg shadow-md bg-gray-100">
+              <div className="flex items-center space-x-4">
+                <div className="flex flex-col items-center">
+                  <button
+                    onClick={() => handleVote(post._id, 'upvote')}
+                    disabled={votingInProgress[post._id]}
+                    className={`p-1 rounded transition-colors ${
+                      voteStatus === 'upvoted'
+                        ? 'text-orange-500 bg-orange-100'
+                        : 'text-gray-500 hover:text-orange-500 hover:bg-orange-50'
+                    } disabled:opacity-50`}
+                    title={voteStatus === 'upvoted' ? 'Remove upvote' : 'Upvote'}
+                  >
+                    <FaArrowUp size={20} />
+                  </button>
+                  <span className={`text-sm font-semibold ${
+                    voteStatus === 'upvoted' ? 'text-orange-500' :
+                    voteStatus === 'downvoted' ? 'text-blue-500' :
+                    'text-gray-700'
+                  }`}>
+                    {(post.upvotes?.length || 0) - (post.downvotes?.length || 0)}
+                  </span>
+                  <button
+                    onClick={() => handleVote(post._id, 'downvote')}
+                    disabled={votingInProgress[post._id]}
+                    className={`p-1 rounded transition-colors ${
+                      voteStatus === 'downvoted'
+                        ? 'text-blue-500 bg-blue-100'
+                        : 'text-gray-500 hover:text-blue-500 hover:bg-blue-50'
+                    } disabled:opacity-50`}
+                    title={voteStatus === 'downvoted' ? 'Remove downvote' : 'Downvote'}
+                  >
+                    <FaArrowDown size={20} />
+                  </button>
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold text-gray-800">{post.title}</h2>
+                  <p className="text-gray-700">{post.body}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
