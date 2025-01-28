@@ -212,9 +212,33 @@ const PostView = () => {
 
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-800 mb-2">{post.title}</h1>
-            <p className="text-sm text-gray-500 mb-2">
-              Posted by {post.author_id?.username || 'Unknown'} in {post.community_id?.name || 'Unknown Community'}
-            </p>
+            <div className="flex items-center space-x-2 mb-2">
+              <Link to={`/${post.author_id?.username}`} className="flex-shrink-0">
+                {post.author_id?.avatar ? (
+                  <img
+                    src={post.author_id.avatar}
+                    alt={post.author_id.username}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                    <span className="text-gray-600 text-sm">
+                      {post.author_id?.username?.[0]?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                )}
+              </Link>
+              <p className="text-sm text-gray-500">
+                Posted by{' '}
+                <Link 
+                  to={`/${post.author_id?.username}`}
+                  className="hover:text-blue-600"
+                >
+                  {post.author_id?.username || 'Unknown'}
+                </Link>{' '}
+                in {post.community_id?.name || 'Unknown Community'}
+              </p>
+            </div>
             <p className="text-gray-700 mb-4 whitespace-pre-wrap">{post.body}</p>
             {post.media_url && (
               <div className="mb-4">

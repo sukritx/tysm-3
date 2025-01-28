@@ -2,7 +2,14 @@ const mongoose = require('mongoose');
 const { fakbokPost } = require('../../models/fakbok/fakbokPost.model');
 const { fakbokCommunity } = require('../../models/fakbok/fakbokCommunity.model');
 const { fakbokComment } = require('../../models/fakbok/fakbokComment.model');
+const { Account } = require('../../models/user.model');
 const { fileUpload } = require('../../middleware/file-upload');
+
+// Helper function to get author avatar
+const getAuthorAvatar = async (authorId) => {
+    const account = await Account.findOne({ userId: authorId }).select('avatar');
+    return account?.avatar || null;
+};
 
 // Create a new post
 const createPost = [fileUpload({ fileType: 'image', maxSize: 5000000, destination: 'fakbok/posts' }), async (req, res) => {
@@ -35,7 +42,14 @@ const createPost = [fileUpload({ fileType: 'image', maxSize: 5000000, destinatio
             }
         ]);
 
-        res.status(201).json(post);
+        // Get author's avatar
+        const avatar = await getAuthorAvatar(author_id);
+        const postObj = post.toObject();
+        if (avatar) {
+            postObj.author_id.avatar = avatar;
+        }
+
+        res.status(201).json(postObj);
     } catch (error) {
         console.error('Error in createPost:', error);
         res.status(400).json({ error: error.message });
@@ -54,15 +68,32 @@ const getAllPosts = async (req, res) => {
             .populate('community_id', 'name description')
             .sort(sortOptions);
 
-        // Get comment counts for all posts
-        const postsWithComments = await Promise.all(posts.map(async (post) => {
-            const commentCount = await fakbokComment.countDocuments({ post_id: post._id });
+        // Get comment counts and avatars for all posts
+        const postsWithDetails = await Promise.all(posts.map(async (post) => {
             const postObj = post.toObject();
-            postObj.commentsCount = commentCount;
+            
+            try {
+                // Get comment count
+                const commentCount = await fakbokComment.countDocuments({ post_id: post._id });
+                postObj.commentsCount = commentCount;
+
+                // Get avatar only if author_id exists
+                if (postObj.author_id && postObj.author_id._id) {
+                    const avatar = await getAuthorAvatar(postObj.author_id._id);
+                    if (avatar) {
+                        postObj.author_id.avatar = avatar;
+                    }
+                }
+            } catch (error) {
+                console.error(`Error processing post ${post._id}:`, error);
+                // Set default values if there's an error
+                postObj.commentsCount = 0;
+            }
+            
             return postObj;
         }));
 
-        res.json(postsWithComments);
+        res.json(postsWithDetails);
     } catch (error) {
         console.error('Error in getAllPosts:', error);
         res.status(500).json({ error: error.message });
@@ -77,15 +108,32 @@ const getAllPostsInCommunity = async (req, res) => {
             .populate('community_id', 'name description')
             .sort({ createdAt: -1 });
 
-        // Get comment counts for all posts
-        const postsWithComments = await Promise.all(posts.map(async (post) => {
-            const commentCount = await fakbokComment.countDocuments({ post_id: post._id });
+        // Get comment counts and avatars for all posts
+        const postsWithDetails = await Promise.all(posts.map(async (post) => {
             const postObj = post.toObject();
-            postObj.commentsCount = commentCount;
+            
+            try {
+                // Get comment count
+                const commentCount = await fakbokComment.countDocuments({ post_id: post._id });
+                postObj.commentsCount = commentCount;
+
+                // Get avatar only if author_id exists
+                if (postObj.author_id && postObj.author_id._id) {
+                    const avatar = await getAuthorAvatar(postObj.author_id._id);
+                    if (avatar) {
+                        postObj.author_id.avatar = avatar;
+                    }
+                }
+            } catch (error) {
+                console.error(`Error processing post ${post._id}:`, error);
+                // Set default values if there's an error
+                postObj.commentsCount = 0;
+            }
+            
             return postObj;
         }));
 
-        res.json(postsWithComments);
+        res.json(postsWithDetails);
     } catch (error) {
         console.error('Error in getAllPostsInCommunity:', error);
         res.status(500).json({ error: error.message });
@@ -101,10 +149,25 @@ const getPostById = async (req, res) => {
 
         if (!post) return res.status(404).json({ error: 'Post not found' });
 
-        // Get actual comment count
-        const commentCount = await fakbokComment.countDocuments({ post_id: post._id });
         const postObj = post.toObject();
-        postObj.commentsCount = commentCount;
+        
+        try {
+            // Get comment count
+            const commentCount = await fakbokComment.countDocuments({ post_id: post._id });
+            postObj.commentsCount = commentCount;
+
+            // Get avatar only if author_id exists
+            if (postObj.author_id && postObj.author_id._id) {
+                const avatar = await getAuthorAvatar(postObj.author_id._id);
+                if (avatar) {
+                    postObj.author_id.avatar = avatar;
+                }
+            }
+        } catch (error) {
+            console.error(`Error processing post ${post._id}:`, error);
+            // Set default values if there's an error
+            postObj.commentsCount = 0;
+        }
 
         res.json(postObj);
     } catch (error) {
@@ -120,9 +183,19 @@ const updatePost = async (req, res) => {
             req.params.id,
             req.body,
             { new: true }
-        );
+        ).populate('author_id', 'username email firstName lastName')
+         .populate('community_id', 'name description');
+
         if (!post) return res.status(404).json({ error: 'Post not found' });
-        res.json(post);
+
+        // Get author's avatar
+        const avatar = await getAuthorAvatar(post.author_id._id);
+        const postObj = post.toObject();
+        if (avatar) {
+            postObj.author_id.avatar = avatar;
+        }
+
+        res.json(postObj);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -164,7 +237,16 @@ const upvotePost = async (req, res) => {
         }
 
         await post.save();
-        res.json(post);
+        await post.populate('author_id', 'username email firstName lastName');
+        
+        // Get author's avatar
+        const avatar = await getAuthorAvatar(post.author_id._id);
+        const postObj = post.toObject();
+        if (avatar) {
+            postObj.author_id.avatar = avatar;
+        }
+
+        res.json(postObj);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -193,7 +275,16 @@ const downvotePost = async (req, res) => {
         }
 
         await post.save();
-        res.json(post);
+        await post.populate('author_id', 'username email firstName lastName');
+        
+        // Get author's avatar
+        const avatar = await getAuthorAvatar(post.author_id._id);
+        const postObj = post.toObject();
+        if (avatar) {
+            postObj.author_id.avatar = avatar;
+        }
+
+        res.json(postObj);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

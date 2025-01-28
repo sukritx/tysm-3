@@ -3,6 +3,12 @@ const { fakbokComment } = require('../../models/fakbok/fakbokComment.model');
 const { fakbokPost } = require('../../models/fakbok/fakbokPost.model');
 const { User, Account } = require('../../models/user.model');
 
+// Helper function to get author avatar
+const getAuthorAvatar = async (authorId) => {
+    const account = await Account.findOne({ userId: authorId }).select('avatar');
+    return account?.avatar || null;
+};
+
 // Create a new comment
 const createComment = async (req, res) => {
     try {
@@ -37,15 +43,12 @@ const createComment = async (req, res) => {
 
         // Populate author details
         await comment.populate('author_id', 'username email firstName lastName');
-        const account = await Account.findOne({ userId: comment.author_id._id })
-            .select('avatar');
 
+        // Get author's avatar
+        const avatar = await getAuthorAvatar(author_id);
         const commentObj = comment.toObject();
-        if (account) {
-            commentObj.author_id = {
-                ...commentObj.author_id,
-                avatar: account.avatar
-            };
+        if (avatar) {
+            commentObj.author_id.avatar = avatar;
         }
 
         res.status(201).json(commentObj);
@@ -62,22 +65,17 @@ const getCommentsForPost = async (req, res) => {
             .populate('author_id', 'username email firstName lastName')
             .sort({ createdAt: -1 });
 
-        // Get account info for each comment author
-        const populatedComments = await Promise.all(comments.map(async (comment) => {
-            const account = await Account.findOne({ userId: comment.author_id._id })
-                .select('avatar');
-            
+        // Get avatars for all comment authors
+        const commentsWithAvatars = await Promise.all(comments.map(async (comment) => {
+            const avatar = await getAuthorAvatar(comment.author_id._id);
             const commentObj = comment.toObject();
-            if (account) {
-                commentObj.author_id = {
-                    ...commentObj.author_id,
-                    avatar: account.avatar
-                };
+            if (avatar) {
+                commentObj.author_id.avatar = avatar;
             }
             return commentObj;
         }));
 
-        res.json(populatedComments);
+        res.json(commentsWithAvatars);
     } catch (error) {
         console.error('Error in getCommentsForPost:', error);
         res.status(500).json({ error: error.message });
@@ -98,15 +96,12 @@ const updateComment = async (req, res) => {
 
         // Populate author details
         await comment.populate('author_id', 'username email firstName lastName');
-        const account = await Account.findOne({ userId: comment.author_id._id })
-            .select('avatar');
 
+        // Get author's avatar
+        const avatar = await getAuthorAvatar(comment.author_id._id);
         const commentObj = comment.toObject();
-        if (account) {
-            commentObj.author_id = {
-                ...commentObj.author_id,
-                avatar: account.avatar
-            };
+        if (avatar) {
+            commentObj.author_id.avatar = avatar;
         }
 
         res.json(commentObj);
@@ -167,15 +162,12 @@ const voteComment = async (req, res) => {
 
         // Populate author details
         await comment.populate('author_id', 'username email firstName lastName');
-        const account = await Account.findOne({ userId: comment.author_id._id })
-            .select('avatar');
 
+        // Get author's avatar
+        const avatar = await getAuthorAvatar(comment.author_id._id);
         const commentObj = comment.toObject();
-        if (account) {
-            commentObj.author_id = {
-                ...commentObj.author_id,
-                avatar: account.avatar
-            };
+        if (avatar) {
+            commentObj.author_id.avatar = avatar;
         }
 
         res.json(commentObj);
