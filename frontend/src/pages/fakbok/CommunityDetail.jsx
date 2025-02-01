@@ -31,7 +31,8 @@ const CommunityDetail = () => {
 
   const fetchPosts = async () => {
     try {
-      const response = await apiClient.get(`/fakbok/posts/community/${id}?sort=${sortOption}`);
+      const response = await apiClient.get(`/fakbok/posts/community/${id}?sortBy=${sortOption}`);
+      console.log('Posts response:', response.data); // Add logging
       setPosts(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -156,60 +157,73 @@ const CommunityDetail = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
             {/* Sort Options */}
-            <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-              <div className="flex space-x-4">
+            <div className="mb-4 flex gap-2">
+              {['new', 'hot', 'top'].map((option) => (
                 <button
-                  onClick={() => setSortOption('new')}
-                  className={`px-4 py-2 rounded ${
-                    sortOption === 'new'
+                  key={option}
+                  onClick={() => setSortOption(option)}
+                  className={`px-4 py-2 rounded-full capitalize ${
+                    sortOption === option
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                  } transition-colors`}
                 >
-                  New
+                  {option}
                 </button>
-                <button
-                  onClick={() => setSortOption('hot')}
-                  className={`px-4 py-2 rounded ${
-                    sortOption === 'hot'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  Hot
-                </button>
-                <button
-                  onClick={() => setSortOption('top')}
-                  className={`px-4 py-2 rounded ${
-                    sortOption === 'top'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  Top
-                </button>
-              </div>
+              ))}
             </div>
 
             {/* Posts */}
             <div className="space-y-4">
-              {posts.map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition"
-                  onClick={() => navigate(`/post/${post.id}`)}
-                >
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2">{post.title}</h2>
-                  <p className="text-gray-600 mb-4">{post.body}</p>
-                  <div className="flex items-center text-gray-500 text-sm">
-                    <span>{post.upvotes} upvotes</span>
-                    <span className="mx-2">•</span>
-                    <span>{post.commentCount} comments</span>
-                    <span className="mx-2">•</span>
-                    <span>Posted by {post.author}</span>
-                  </div>
+              {posts.length === 0 ? (
+                <div className="text-center py-8 bg-white rounded-lg shadow">
+                  <p className="text-gray-500">No posts in this community yet.</p>
+                  {community.isJoined && (
+                    <button
+                      onClick={() => navigate('/create-post')}
+                      className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+                    >
+                      Create the first post
+                    </button>
+                  )}
                 </div>
-              ))}
+              ) : (
+                posts.map((post) => (
+                  <div
+                    key={post._id}
+                    onClick={() => navigate(`/post/${post._id}`)}
+                    className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+                  >
+                    <div className="flex items-start space-x-3">
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm font-semibold text-gray-700">
+                          {post.score || 0}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 text-sm text-gray-500">
+                          <span>{post.author_id?.username || 'Unknown'}</span>
+                          <span>•</span>
+                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mt-1">
+                          {post.title}
+                        </h3>
+                        {post.media_url && (
+                          <img
+                            src={post.media_url}
+                            alt={post.title}
+                            className="mt-2 max-h-48 rounded object-cover"
+                          />
+                        )}
+                        <div className="mt-2 text-sm text-gray-500">
+                          {post.commentsCount || 0} comments
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

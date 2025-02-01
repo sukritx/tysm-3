@@ -103,12 +103,14 @@ const getAllPosts = async (req, res) => {
 // Get all posts in a specific community
 const getAllPostsInCommunity = async (req, res) => {
     try {
-        const posts = await fakbokPost.find({ community_id: req.params.id })
-            .populate('author_id', 'username email firstName lastName')
-            .populate('community_id', 'name description')
-            .sort({ createdAt: -1 });
+        const { sortBy = 'new' } = req.query;
 
-        // Get comment counts and avatars for all posts
+        // First get all posts for the community
+        const posts = await fakbokPost.find({ community_id: req.params.communityId })
+            .populate('author_id', 'username email firstName lastName')
+            .populate('community_id', 'name description');
+
+        // Process posts with details and calculate scores
         const postsWithDetails = await Promise.all(posts.map(async (post) => {
             const postObj = post.toObject();
             
@@ -124,16 +126,51 @@ const getAllPostsInCommunity = async (req, res) => {
                         postObj.author_id.avatar = avatar;
                     }
                 }
+
+                // Calculate score and add timestamps for sorting
+                postObj.score = (post.upvotes?.length || 0) - (post.downvotes?.length || 0);
+                postObj.upvoteCount = post.upvotes?.length || 0;
+                postObj.timestamp = new Date(post.createdAt).getTime();
+                
+                // For hot sorting: simple decay factor based on time
+                const ageInHours = (Date.now() - postObj.timestamp) / (1000 * 60 * 60);
+                postObj.hotScore = postObj.score / Math.pow(ageInHours + 2, 1.5);
+
             } catch (error) {
                 console.error(`Error processing post ${post._id}:`, error);
-                // Set default values if there's an error
                 postObj.commentsCount = 0;
+                postObj.score = 0;
+                postObj.upvoteCount = 0;
+                postObj.hotScore = 0;
             }
             
             return postObj;
         }));
 
-        res.json(postsWithDetails);
+        // Sort posts based on the selected option
+        let sortedPosts;
+        switch (sortBy) {
+            case 'hot':
+                // Sort by hot score (score with time decay)
+                sortedPosts = postsWithDetails.sort((a, b) => b.hotScore - a.hotScore);
+                break;
+            case 'top':
+                // Sort by total upvotes, then by newest
+                sortedPosts = postsWithDetails.sort((a, b) => {
+                    if (b.upvoteCount !== a.upvoteCount) {
+                        return b.upvoteCount - a.upvoteCount;
+                    }
+                    return b.timestamp - a.timestamp;
+                });
+                break;
+            case 'new':
+            default:
+                // Sort by timestamp (newest first)
+                sortedPosts = postsWithDetails.sort((a, b) => b.timestamp - a.timestamp);
+                break;
+        }
+
+        res.json(sortedPosts);
     } catch (error) {
         console.error('Error in getAllPostsInCommunity:', error);
         res.status(500).json({ error: error.message });
