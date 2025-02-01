@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { FaArrowUp, FaArrowDown, FaComment } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -103,12 +104,29 @@ const HomePage = () => {
         </button>
       </div>
 
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold text-gray-700">Trending Communities</h2>
-        <div className="flex space-x-2 overflow-x-auto">
-          {communities.map((community) => (
-            <div key={community._id} className="p-2 border rounded shadow bg-gray-100">
-              <h3 className="font-bold text-gray-800">{community.name}</h3>
+      {/* Trending Communities Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-4 text-gray-800">Trending Communities</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {communities.slice(0, 6).map((community) => (
+            <div
+              key={community._id}
+              onClick={() => navigate(`/communities/${community._id}`)}
+              className="border rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow bg-gray-50"
+            >
+              <div className="flex items-center space-x-3">
+                {community.banner && (
+                  <img
+                    src={community.banner}
+                    alt={community.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                )}
+                <div>
+                  <h3 className="font-semibold text-gray-800">{community.name}</h3>
+                  <p className="text-sm text-gray-600">{community.memberCount || 0} members</p>
+                </div>
+              </div>
             </div>
           ))}
         </div>
