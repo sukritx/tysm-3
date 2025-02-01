@@ -23,9 +23,26 @@ const createCommunity = async (req, res) => {
 // Get all communities
 const getAllCommunities = async (req, res) => {
     try {
-        const communities = await fakbokCommunity.find();
-        res.json(communities);
+        const communities = await fakbokCommunity.find()
+            .populate('moderators', 'username avatar');
+
+        // Convert communities to objects and add custom fields
+        const communitiesWithFlags = communities.map(community => {
+            const communityObj = community.toObject();
+            
+            // Add isJoined flag if user is authenticated
+            communityObj.isJoined = false;
+            if (req.user) {
+                communityObj.isJoined = community.followers.includes(req.user._id);
+            }
+            
+            communityObj.memberCount = community.followersCount;
+            return communityObj;
+        });
+
+        res.json(communitiesWithFlags);
     } catch (error) {
+        console.error('Error getting communities:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -33,10 +50,27 @@ const getAllCommunities = async (req, res) => {
 // Get a specific community by ID
 const getCommunityById = async (req, res) => {
     try {
-        const community = await fakbokCommunity.findById(req.params.id);
-        if (!community) return res.status(404).json({ error: 'Community not found' });
-        res.json(community);
+        const community = await fakbokCommunity.findById(req.params.id)
+            .populate('moderators', 'username avatar');
+
+        if (!community) {
+            return res.status(404).json({ error: 'Community not found' });
+        }
+
+        // Convert to object and add custom fields
+        const communityObj = community.toObject();
+        
+        // Add isJoined flag if user is authenticated
+        communityObj.isJoined = false;
+        if (req.user) {
+            communityObj.isJoined = community.followers.includes(req.user._id);
+        }
+
+        communityObj.memberCount = community.followersCount;
+        
+        res.json(communityObj);
     } catch (error) {
+        console.error('Error getting community:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -67,23 +101,84 @@ const deleteCommunity = async (req, res) => {
 // Join a community
 const joinCommunity = async (req, res) => {
     try {
-        const community = await fakbokCommunity.findById(req.params.id);
+        const community = await fakbokCommunity.findById(req.params.id)
+            .populate('moderators', 'username avatar');
         if (!community) return res.status(404).json({ error: 'Community not found' });
-        // Logic to add user to community
-        res.json({ message: 'Joined community' });
+
+        const userId = req.user._id;
+        
+        // Check if user is already a follower
+        if (community.followers.includes(userId)) {
+            return res.status(400).json({ error: 'Already a member of this community' });
+        }
+
+        // Add user to followers
+        community.followers.push(userId);
+        await community.save();
+
+        // Return updated community with isJoined flag
+        const updatedCommunity = community.toObject();
+        updatedCommunity.isJoined = true;
+        updatedCommunity.memberCount = community.followersCount;
+
+        res.json(updatedCommunity);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error joining community:', error);
+        res.status(500).json({ error: 'Failed to join community' });
     }
 };
 
 // Leave a community
 const leaveCommunity = async (req, res) => {
     try {
-        const community = await fakbokCommunity.findById(req.params.id);
+        const community = await fakbokCommunity.findById(req.params.id)
+            .populate('moderators', 'username avatar');
         if (!community) return res.status(404).json({ error: 'Community not found' });
-        // Logic to remove user from community
-        res.json({ message: 'Left community' });
+
+        const userId = req.user._id;
+        
+        // Check if user is a follower
+        if (!community.followers.includes(userId)) {
+            return res.status(400).json({ error: 'Not a member of this community' });
+        }
+
+        // Remove user from followers
+        community.followers = community.followers.filter(id => !id.equals(userId));
+        await community.save();
+
+        // Return updated community with isJoined flag
+        const updatedCommunity = community.toObject();
+        updatedCommunity.isJoined = false;
+        updatedCommunity.memberCount = community.followersCount;
+
+        res.json(updatedCommunity);
     } catch (error) {
+        console.error('Error leaving community:', error);
+        res.status(500).json({ error: 'Failed to leave community' });
+    }
+};
+
+// Get a community
+const getCommunity = async (req, res) => {
+    try {
+        const community = await fakbokCommunity.findById(req.params.id)
+            .populate('moderators', 'username avatar');
+        
+        if (!community) return res.status(404).json({ error: 'Community not found' });
+
+        // Convert to object to add custom fields
+        const communityObj = community.toObject();
+        
+        // Add isJoined flag if user is authenticated
+        if (req.user) {
+            communityObj.isJoined = community.isFollowedByUser(req.user._id);
+        }
+        
+        communityObj.memberCount = community.followersCount;
+
+        res.json(communityObj);
+    } catch (error) {
+        console.error('Error getting community:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -126,5 +221,6 @@ module.exports = {
     deleteCommunity,
     joinCommunity,
     leaveCommunity,
+    getCommunity,
     searchCommunities
 };
