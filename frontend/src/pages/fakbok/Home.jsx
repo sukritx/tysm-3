@@ -56,7 +56,7 @@ const HomePage = () => {
 
     try {
       const response = await apiClient.post(`/fakbok/posts/${postId}/${voteType}`, {
-        userId: user._id
+        userId: user.id
       });
       
       // Update the posts list with the updated post
@@ -65,7 +65,7 @@ const HomePage = () => {
       ));
     } catch (error) {
       console.error(`Error ${voteType}ing post:`, error);
-      alert(error.response?.data?.error || `Failed to ${voteType} post`);
+      toast.error(error.response?.data?.error || `Failed to ${voteType} post`);
     } finally {
       setVotingInProgress(prev => ({ ...prev, [postId]: false }));
     }
@@ -73,8 +73,8 @@ const HomePage = () => {
 
   const getVoteStatus = (post) => {
     if (!user) return 'none';
-    if (post.upvotes?.includes(user._id)) return 'upvoted';
-    if (post.downvotes?.includes(user._id)) return 'downvoted';
+    if (post.upvotes?.includes(user.id)) return 'upvoted';
+    if (post.downvotes?.includes(user.id)) return 'downvoted';
     return 'none';
   };
 

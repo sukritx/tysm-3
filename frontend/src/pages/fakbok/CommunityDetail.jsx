@@ -13,6 +13,7 @@ const CommunityDetail = () => {
   const [sortOption, setSortOption] = useState('new');
   const [loading, setLoading] = useState(true);
   const [joinLoading, setJoinLoading] = useState(false);
+  const [votingInProgress, setVotingInProgress] = useState({});
 
   useEffect(() => {
     fetchCommunityDetails();
@@ -75,6 +76,44 @@ const CommunityDetail = () => {
     } finally {
       setJoinLoading(false);
     }
+  };
+
+  const handleVote = async (e, postId, voteType) => {
+    e.stopPropagation(); // Prevent post click when voting
+    if (!user) {
+      toast.error('Please log in to vote');
+      return;
+    }
+
+    // Prevent multiple votes while processing
+    if (votingInProgress[postId]) {
+      return;
+    }
+
+    setVotingInProgress(prev => ({ ...prev, [postId]: true }));
+
+    try {
+      const response = await apiClient.post(`/fakbok/posts/${postId}/${voteType}`, {
+        userId: user.id
+      });
+      
+      // Update the posts list with the updated post
+      setPosts(posts.map(post => 
+        post._id === postId ? response.data : post
+      ));
+    } catch (error) {
+      console.error(`Error ${voteType}ing post:`, error);
+      toast.error(error.response?.data?.error || `Failed to ${voteType} post`);
+    } finally {
+      setVotingInProgress(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const getVoteStatus = (post) => {
+    if (!user) return 'none';
+    if (post.upvotes?.includes(user.id)) return 'upvoted';
+    if (post.downvotes?.includes(user.id)) return 'downvoted';
+    return 'none';
   };
 
   if (loading || !community) {
