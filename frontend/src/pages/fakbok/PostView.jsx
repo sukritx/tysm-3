@@ -129,36 +129,44 @@ const PostView = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="text-center">Loading...</div>
+      <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+        <div className="animate-pulse text-lg text-gray-600">Loading...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="text-red-500 text-center">{error}</div>
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-4 flex items-center text-blue-500 hover:text-blue-700"
-        >
-          <FaArrowLeft className="mr-2" /> Go Back
-        </button>
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-600 text-center">{error}</p>
+          </div>
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <FaArrowLeft className="mr-2" /> Go Back
+          </button>
+        </div>
       </div>
     );
   }
 
   if (!post) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="text-center">Post not found</div>
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-4 flex items-center text-blue-500 hover:text-blue-700"
-        >
-          <FaArrowLeft className="mr-2" /> Go Back
-        </button>
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="bg-white rounded-lg shadow-sm p-8 mb-4">
+            <p className="text-gray-600 text-lg">Post not found</p>
+          </div>
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <FaArrowLeft className="mr-2" /> Go Back
+          </button>
+        </div>
       </div>
     );
   }
@@ -166,193 +174,225 @@ const PostView = () => {
   const voteStatus = getVoteStatus(post);
 
   return (
-    <div className="container mx-auto p-4 bg-white">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 flex items-center text-blue-500 hover:text-blue-700"
-      >
-        <FaArrowLeft className="mr-2" /> Back to Feed
-      </button>
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 sm:mb-6 inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+        >
+          <FaArrowLeft className="mr-2" /> Back to Feed
+        </button>
 
-      <div className="bg-gray-100 rounded-lg shadow-md p-4">
-        <div className="flex items-start space-x-4">
-          <div className="flex flex-col items-center">
-            <button
-              onClick={() => handleVote('upvote')}
-              disabled={votingInProgress}
-              className={`p-1 rounded transition-colors ${
-                voteStatus === 'upvoted'
-                  ? 'text-orange-500 bg-orange-100'
-                  : 'text-gray-500 hover:text-orange-500 hover:bg-orange-50'
-              } disabled:opacity-50`}
-              title={voteStatus === 'upvoted' ? 'Remove upvote' : 'Upvote'}
-            >
-              <FaArrowUp size={20} />
-            </button>
-            <span className={`text-sm font-semibold ${
-              voteStatus === 'upvoted' ? 'text-orange-500' :
-              voteStatus === 'downvoted' ? 'text-blue-500' :
-              'text-gray-700'
-            }`}>
-              {(post.upvotes?.length || 0) - (post.downvotes?.length || 0)}
-            </span>
-            <button
-              onClick={() => handleVote('downvote')}
-              disabled={votingInProgress}
-              className={`p-1 rounded transition-colors ${
-                voteStatus === 'downvoted'
-                  ? 'text-blue-500 bg-blue-100'
-                  : 'text-gray-500 hover:text-blue-500 hover:bg-blue-50'
-              } disabled:opacity-50`}
-              title={voteStatus === 'downvoted' ? 'Remove downvote' : 'Downvote'}
-            >
-              <FaArrowDown size={20} />
-            </button>
-          </div>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:gap-6">
+              {/* Vote Column - Horizontal on mobile, Vertical on desktop */}
+              <div className="flex sm:flex-col items-center justify-center sm:justify-start space-x-4 sm:space-x-0 sm:space-y-2 mb-4 sm:mb-0">
+                <button
+                  onClick={() => handleVote('upvote')}
+                  disabled={votingInProgress}
+                  className={`p-2 rounded-lg transition-all transform hover:scale-110 ${
+                    voteStatus === 'upvoted'
+                      ? 'text-orange-500 bg-orange-50'
+                      : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'
+                  } disabled:opacity-50`}
+                  title={voteStatus === 'upvoted' ? 'Remove upvote' : 'Upvote'}
+                >
+                  <FaArrowUp className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+                <span className={`text-base sm:text-lg font-bold ${
+                  voteStatus === 'upvoted' ? 'text-orange-500' :
+                  voteStatus === 'downvoted' ? 'text-blue-500' :
+                  'text-gray-700'
+                }`}>
+                  {(post.upvotes?.length || 0) - (post.downvotes?.length || 0)}
+                </span>
+                <button
+                  onClick={() => handleVote('downvote')}
+                  disabled={votingInProgress}
+                  className={`p-2 rounded-lg transition-all transform hover:scale-110 ${
+                    voteStatus === 'downvoted'
+                      ? 'text-blue-500 bg-blue-50'
+                      : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'
+                  } disabled:opacity-50`}
+                  title={voteStatus === 'downvoted' ? 'Remove downvote' : 'Downvote'}
+                >
+                  <FaArrowDown className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+              </div>
 
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">{post.title}</h1>
-            <div className="flex items-center space-x-2 mb-2">
-              <Link to={`/${post.author_id?.username}`} className="flex-shrink-0">
-                {post.author_id?.avatar ? (
-                  <img
-                    src={post.author_id.avatar}
-                    alt={post.author_id.username}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                    <span className="text-gray-600 text-sm">
-                      {post.author_id?.username?.[0]?.toUpperCase() || '?'}
-                    </span>
+              {/* Content Column */}
+              <div className="flex-1">
+                <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">{post.title}</h1>
+                <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
+                  <Link to={`/${post.author_id?.username}`} className="flex-shrink-0 group">
+                    {post.author_id?.avatar ? (
+                      <img
+                        src={post.author_id.avatar}
+                        alt={post.author_id.username}
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-100 group-hover:ring-blue-200 transition-all"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center ring-2 ring-gray-100 group-hover:ring-blue-200 transition-all">
+                        <span className="text-blue-600 text-sm sm:text-lg font-medium">
+                          {post.author_id?.username?.[0]?.toUpperCase() || '?'}
+                        </span>
+                      </div>
+                    )}
+                  </Link>
+                  <div>
+                    <Link 
+                      to={`/${post.author_id?.username}`}
+                      className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors"
+                    >
+                      {post.author_id?.username || 'Unknown'}
+                    </Link>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      in {post.community_id?.name || 'Unknown Community'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="prose max-w-none mb-4 sm:mb-6">
+                  <p className="text-sm sm:text-base text-gray-800 whitespace-pre-wrap leading-relaxed">{post.body}</p>
+                </div>
+
+                {post.media_url && (
+                  <div className="mb-4 sm:mb-6 rounded-lg overflow-hidden bg-gray-100">
+                    <img
+                      src={post.media_url}
+                      alt="Post content"
+                      className="w-full h-auto object-contain max-h-[300px] sm:max-h-[600px]"
+                      loading="lazy"
+                    />
                   </div>
                 )}
-              </Link>
-              <p className="text-sm text-gray-500">
-                Posted by{' '}
-                <Link 
-                  to={`/${post.author_id?.username}`}
-                  className="hover:text-blue-600"
-                >
-                  {post.author_id?.username || 'Unknown'}
-                </Link>{' '}
-                in {post.community_id?.name || 'Unknown Community'}
-              </p>
-            </div>
-            <p className="text-gray-700 mb-4 whitespace-pre-wrap">{post.body}</p>
-            {post.media_url && (
-              <div className="mb-4">
-                <img
-                  src={post.media_url}
-                  alt="Post content"
-                  className="max-w-full h-auto rounded-lg"
-                  style={{ maxHeight: '600px', objectFit: 'contain' }}
-                />
+
+                {/* Action Bar */}
+                <div className="flex items-center py-3 sm:py-4 border-t border-gray-100">
+                  <button 
+                    onClick={() => document.querySelector('textarea')?.focus()}
+                    className="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors"
+                  >
+                    <FaComment className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-xs sm:text-sm">{comments.length} Comments</span>
+                  </button>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Comments</h2>
-        {user ? (
-          <form onSubmit={handleSubmitComment} className="mb-6">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Write a comment..."
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows="3"
-            />
-            <button
-              type="submit"
-              disabled={!newComment.trim()}
-              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-            >
-              Post Comment
-            </button>
-          </form>
-        ) : (
-          <p className="mb-6 text-gray-600">
-            Please <button onClick={() => navigate('/login')} className="text-blue-500 hover:text-blue-700">log in</button> to comment
-          </p>
-        )}
+        {/* Comments Section */}
+        <div className="mt-6 sm:mt-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Comments</h2>
+          
+          {user ? (
+            <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
+              <form onSubmit={handleSubmitComment}>
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="What are your thoughts?"
+                  className="w-full p-3 sm:p-4 text-sm sm:text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                  rows="4"
+                />
+                <div className="mt-3 sm:mt-4 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={!newComment.trim()}
+                    className={`px-4 sm:px-6 py-1.5 sm:py-2 rounded-lg font-medium text-sm sm:text-base transition-all ${
+                      newComment.trim()
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    Comment
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8 text-center">
+              <p className="text-sm sm:text-base text-gray-600">
+                Please{' '}
+                <button 
+                  onClick={() => navigate('/login')} 
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  log in
+                </button>{' '}
+                to join the discussion
+              </p>
+            </div>
+          )}
 
-        <div className="space-y-4">
-          {comments.map((comment) => (
-            <div key={comment._id} className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0">
-                  <Link to={`/${comment.author_id?.username}`}>
+          <div className="space-y-4 sm:space-y-6">
+            {comments.map((comment) => (
+              <div key={comment._id} className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+                <div className="flex space-x-3 sm:space-x-4">
+                  <Link to={`/${comment.author_id?.username}`} className="flex-shrink-0 group">
                     {comment.author_id?.avatar ? (
                       <img
                         src={comment.author_id.avatar}
                         alt={comment.author_id.username}
-                        className="w-10 h-10 rounded-full object-cover"
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-100 group-hover:ring-blue-200 transition-all"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-gray-600 text-lg">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center ring-2 ring-gray-100 group-hover:ring-blue-200 transition-all">
+                        <span className="text-blue-600 text-sm sm:text-lg font-medium">
                           {comment.author_id?.username?.[0]?.toUpperCase() || '?'}
                         </span>
                       </div>
                     )}
                   </Link>
-                </div>
-                <div className="flex-grow">
-                  <div className="flex items-center mb-1">
-                    <Link 
-                      to={`/${comment.author_id?.username}`}
-                      className="font-semibold text-blue-600 hover:text-blue-800"
-                    >
-                      {comment.author_id?.username || 
-                       (comment.author_id?.firstName && comment.author_id?.lastName 
-                        ? `${comment.author_id.firstName} ${comment.author_id.lastName}`
-                        : 'Unknown')}
-                    </Link>
-                  </div>
-                  <p className="text-gray-700 mb-2">{comment.body}</p>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleCommentVote(comment._id, getCommentVoteStatus(comment) === 'upvoted' ? 'none' : 'upvote')}
-                      className={`p-1 rounded transition-colors ${
-                        getCommentVoteStatus(comment) === 'upvoted'
-                          ? 'text-orange-500 bg-orange-100'
-                          : 'text-gray-500 hover:text-orange-500 hover:bg-orange-50'
-                      }`}
-                    >
-                      <FaArrowUp />
-                    </button>
-                    <span className={`text-sm font-semibold ${
-                      getCommentVoteStatus(comment) === 'upvoted' ? 'text-orange-500' : 'text-gray-600'
-                    }`}>
-                      {comment.upvotes?.length || 0}
-                    </span>
-                    <span className="text-sm text-gray-400 mx-1">|</span>
-                    <span className={`text-sm font-semibold ${
-                      getCommentVoteStatus(comment) === 'downvoted' ? 'text-blue-500' : 'text-gray-600'
-                    }`}>
-                      {comment.downvotes?.length || 0}
-                    </span>
-                    <button
-                      onClick={() => handleCommentVote(comment._id, getCommentVoteStatus(comment) === 'downvoted' ? 'none' : 'downvote')}
-                      className={`p-1 rounded transition-colors ${
-                        getCommentVoteStatus(comment) === 'downvoted'
-                          ? 'text-blue-500 bg-blue-100'
-                          : 'text-gray-500 hover:text-blue-500 hover:bg-blue-50'
-                      }`}
-                    >
-                      <FaArrowDown />
-                    </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center mb-2">
+                      <Link 
+                        to={`/${comment.author_id?.username}`}
+                        className="font-medium text-sm sm:text-base text-gray-900 hover:text-blue-600 transition-colors truncate"
+                      >
+                        {comment.author_id?.username || 
+                         (comment.author_id?.firstName && comment.author_id?.lastName 
+                          ? `${comment.author_id.firstName} ${comment.author_id.lastName}`
+                          : 'Unknown')}
+                      </Link>
+                    </div>
+                    <p className="text-sm sm:text-base text-gray-800 mb-3">{comment.body}</p>
+                    <div className="flex items-center space-x-4">
+                      <button
+                        onClick={() => handleCommentVote(comment._id, getCommentVoteStatus(comment) === 'upvoted' ? 'none' : 'upvote')}
+                        className={`inline-flex items-center space-x-1 rounded-lg px-2 py-1 transition-colors ${
+                          getCommentVoteStatus(comment) === 'upvoted'
+                            ? 'text-orange-500 bg-orange-50'
+                            : 'text-gray-500 hover:text-orange-500 hover:bg-orange-50'
+                        }`}
+                      >
+                        <FaArrowUp className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="text-xs sm:text-sm font-medium">{comment.upvotes?.length || 0}</span>
+                      </button>
+                      <button
+                        onClick={() => handleCommentVote(comment._id, getCommentVoteStatus(comment) === 'downvoted' ? 'none' : 'downvote')}
+                        className={`inline-flex items-center space-x-1 rounded-lg px-2 py-1 transition-colors ${
+                          getCommentVoteStatus(comment) === 'downvoted'
+                            ? 'text-blue-500 bg-blue-50'
+                            : 'text-gray-500 hover:text-blue-500 hover:bg-blue-50'
+                        }`}
+                      >
+                        <FaArrowDown className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="text-xs sm:text-sm font-medium">{comment.downvotes?.length || 0}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-          {comments.length === 0 && (
-            <p className="text-gray-600 text-center">No comments yet. Be the first to comment!</p>
-          )}
+            ))}
+            {comments.length === 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8 text-center">
+                <p className="text-sm sm:text-lg text-gray-500">No comments yet. Be the first to share your thoughts!</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

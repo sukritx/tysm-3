@@ -142,15 +142,21 @@ const CreateEditPost = () => {
       console.error('Community name is required');
       return;
     }
-
+  
     try {
       const dataToSend = {
         name: newCommunityData.name.trim(),
-        description: newCommunityData.description.trim(),
-        rules: newCommunityData.rules.filter(rule => rule.trim()),
         moderators: []
       };
-
+  
+      if (newCommunityData.description.trim()) {
+        dataToSend.description = newCommunityData.description.trim();
+      }
+  
+      if (newCommunityData.rules.filter(rule => rule.trim()).length > 0) {
+        dataToSend.rules = newCommunityData.rules.filter(rule => rule.trim());
+      }
+  
       const response = await apiClient.post('/fakbok/communities/create', dataToSend);
       console.log('Community created successfully:', response.data);
       setCommunityName(dataToSend.name);
@@ -279,17 +285,6 @@ const CreateEditPost = () => {
                     value={newCommunityData.name}
                     onChange={(e) =>
                       setNewCommunityData({ ...newCommunityData, name: e.target.value })
-                    }
-                    className="w-full p-3 border border-gray-300 rounded text-black"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Description</label>
-                  <textarea
-                    value={newCommunityData.description}
-                    onChange={(e) =>
-                      setNewCommunityData({ ...newCommunityData, description: e.target.value })
                     }
                     className="w-full p-3 border border-gray-300 rounded text-black"
                     required

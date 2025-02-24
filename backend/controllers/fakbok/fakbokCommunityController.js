@@ -4,21 +4,21 @@ const { fakbokCommunity } = require('../../models/fakbok/fakbokCommunity.model')
 // Create a new community
 const createCommunity = async (req, res) => {
     try {
-        const { name, description, rules, logo, banner, moderators = [] } = req.body;
-        const community = new fakbokCommunity({ 
-            name, 
-            description, 
-            rules, 
-            logo, 
-            banner, 
-            moderators 
-        });
-        await community.save();
-        res.status(201).json(community);
+      const { name, description = '', rules = [], logo, banner, moderators = [] } = req.body;
+      const community = new fakbokCommunity({ 
+        name, 
+        description, 
+        rules, 
+        logo, 
+        banner, 
+        moderators 
+      });
+      await community.save();
+      res.status(201).json(community);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+      res.status(400).json({ error: error.message });
     }
-};
+  };
 
 // Get all communities
 const getAllCommunities = async (req, res) => {
