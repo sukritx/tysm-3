@@ -59,8 +59,33 @@ const createPost = [fileUpload({ fileType: 'image', maxSize: 5000000, destinatio
 // Get all posts with optional filters
 const getAllPosts = async (req, res) => {
     try {
-        const { sortBy } = req.query;
-        const sortOptions = sortBy === 'upvotes' ? { upvotes: -1 } : { createdAt: -1 };
+        const { sort } = req.query;
+        let sortOptions;
+        
+        switch (sort) {
+            case 'hot':
+                // Sort by score (upvotes - downvotes) and recency
+                sortOptions = {
+                    $expr: {
+                        $multiply: [
+                            { $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] },
+                            { $divide: [1, { $sqrt: { $abs: { $subtract: [new Date(), "$createdAt"] } } }] }
+                        ]
+                    }
+                };
+                break;
+            case 'top':
+                // Sort by pure score (upvotes - downvotes)
+                sortOptions = { 
+                    $expr: { 
+                        $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] 
+                    }
+                };
+                break;
+            case 'new':
+            default:
+                sortOptions = { createdAt: -1 };
+        }
         
         // Get all posts
         const posts = await fakbokPost.find()

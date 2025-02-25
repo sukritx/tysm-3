@@ -207,21 +207,30 @@ const HomePage = () => {
                         </button>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 line-clamp-2">{post.title}</h3>
-                        <p className="text-sm sm:text-base text-gray-700 mb-3 line-clamp-3">{post.body}</p>
-                        {post.media_url && (
-                          <div className="mb-3">
-                            <img
-                              src={post.media_url}
-                              alt="Post content"
-                              className="w-full h-auto rounded-lg"
-                              style={{ maxHeight: '300px', objectFit: 'contain' }}
-                            />
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="font-medium text-blue-600">{post.community_id?.name}</span>
+                            <span>•</span>
+                            <span>Posted by {post.author_id?.username}</span>
                           </div>
-                        )}
-                        <div className="flex items-center text-gray-500">
-                          <FaComment className="w-4 h-4 mr-1" />
-                          <span className="text-sm">{post.commentsCount || 0} comments</span>
+                          <h3 className="text-lg font-semibold text-gray-900">{post.title}</h3>
+                          <p className="text-gray-700">{post.body}</p>
+                          {post.media_url && (
+                            <div className="mb-3">
+                              <img
+                                src={post.media_url}
+                                alt="Post content"
+                                className="w-full h-auto rounded-lg"
+                                style={{ maxHeight: '300px', objectFit: 'contain' }}
+                              />
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 text-gray-500 text-sm">
+                            <div className="flex items-center gap-1">
+                              <FaComment className="w-4 h-4" />
+                              <span>{post.commentsCount || 0} comments</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
