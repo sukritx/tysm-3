@@ -213,9 +213,9 @@ const HomePage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <span className="font-medium text-blue-600">{post.community_id?.name}</span>
+                            <span className="font-medium text-blue-600">{post.community?.name}</span>
                             <span>•</span>
-                            <span>Posted by {post.author_id?.username}</span>
+                            <span>Posted by {post.author?.username}</span>
                           </div>
                           <h3 className="text-lg font-semibold text-gray-900">{post.title}</h3>
                           <p className="text-gray-700">{post.body}</p>
