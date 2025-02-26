@@ -60,62 +60,83 @@ const createPost = [fileUpload({ fileType: 'image', maxSize: 5000000, destinatio
 const getAllPosts = async (req, res) => {
     try {
         const { sort } = req.query;
-        let sortOptions;
-        
+        let pipeline = [];
+
+        // Add fields for vote calculations
+        pipeline.push({
+            $addFields: {
+                score: {
+                    $subtract: [
+                        { $size: "$upvotes" },
+                        { $size: "$downvotes" }
+                    ]
+                },
+                timeDiff: {
+                    $subtract: [new Date(), "$createdAt"]
+                }
+            }
+        });
+
+        // Add sorting based on option
         switch (sort) {
             case 'hot':
-                // Sort by score (upvotes - downvotes) and recency
-                sortOptions = {
-                    $expr: {
-                        $multiply: [
-                            { $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] },
-                            { $divide: [1, { $sqrt: { $abs: { $subtract: [new Date(), "$createdAt"] } } }] }
-                        ]
+                pipeline.push({
+                    $addFields: {
+                        hotScore: {
+                            $divide: [
+                                "$score",
+                                { $add: [1, { $divide: ["$timeDiff", 1000 * 60 * 60] }] } // Hours since creation
+                            ]
+                        }
                     }
-                };
+                });
+                pipeline.push({ $sort: { hotScore: -1 } });
                 break;
             case 'top':
-                // Sort by pure score (upvotes - downvotes)
-                sortOptions = { 
-                    $expr: { 
-                        $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] 
-                    }
-                };
+                pipeline.push({ $sort: { score: -1 } });
                 break;
             case 'new':
             default:
-                sortOptions = { createdAt: -1 };
+                pipeline.push({ $sort: { createdAt: -1 } });
         }
-        
-        // Get all posts
-        const posts = await fakbokPost.find()
-            .populate('author_id', 'username email firstName lastName')
-            .populate('community_id', 'name description')
-            .sort(sortOptions);
+
+        // Get all posts using aggregation
+        const posts = await fakbokPost.aggregate(pipeline)
+            .lookup({
+                from: 'users',
+                localField: 'author_id',
+                foreignField: '_id',
+                as: 'author'
+            })
+            .lookup({
+                from: 'fakbokcommunities',
+                localField: 'community_id',
+                foreignField: '_id',
+                as: 'community'
+            })
+            .unwind('author')
+            .unwind('community');
 
         // Get comment counts and avatars for all posts
         const postsWithDetails = await Promise.all(posts.map(async (post) => {
-            const postObj = post.toObject();
-            
             try {
                 // Get comment count
                 const commentCount = await fakbokComment.countDocuments({ post_id: post._id });
-                postObj.commentsCount = commentCount;
+                post.commentsCount = commentCount;
 
-                // Get avatar only if author_id exists
-                if (postObj.author_id && postObj.author_id._id) {
-                    const avatar = await getAuthorAvatar(postObj.author_id._id);
+                // Get avatar if author exists
+                if (post.author && post.author._id) {
+                    const avatar = await getAuthorAvatar(post.author._id);
                     if (avatar) {
-                        postObj.author_id.avatar = avatar;
+                        post.author.avatar = avatar;
                     }
                 }
             } catch (error) {
                 console.error(`Error processing post ${post._id}:`, error);
-                // Set default values if there's an error
-                postObj.commentsCount = 0;
+                post.commentsCount = 0;
             }
             
-            return postObj;
+            return post;
         }));
 
         res.json(postsWithDetails);

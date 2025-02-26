@@ -99,6 +99,10 @@ const HomePage = () => {
     setSearchQuery(e.target.value);
   };
 
+  const handleSortChange = (option) => {
+    setSortOption(option); // Update the sort option when a button is clicked
+  };
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 bg-white">
       <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-800">Global Feed</h1>
@@ -137,7 +141,7 @@ const HomePage = () => {
             {/* Sort Options */}
             <div className="flex flex-wrap gap-2 mb-6">
               <button 
-                onClick={() => setSortOption('new')} 
+                onClick={() => handleSortChange('new')} 
                 className={`px-4 py-2 text-sm sm:text-base rounded-lg transition-colors ${
                   sortOption === 'new' ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                 }`}
@@ -145,7 +149,7 @@ const HomePage = () => {
                 New
               </button>
               <button 
-                onClick={() => setSortOption('hot')} 
+                onClick={() => handleSortChange('hot')} 
                 className={`px-4 py-2 text-sm sm:text-base rounded-lg transition-colors ${
                   sortOption === 'hot' ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                 }`}
@@ -153,7 +157,7 @@ const HomePage = () => {
                 Hot
               </button>
               <button 
-                onClick={() => setSortOption('top')} 
+                onClick={() => handleSortChange('top')} 
                 className={`px-4 py-2 text-sm sm:text-base rounded-lg transition-colors ${
                   sortOption === 'top' ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                 }`}
